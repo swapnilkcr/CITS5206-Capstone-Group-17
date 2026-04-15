@@ -99,7 +99,7 @@
 
 ---
 
-## Key Findings
+## Key Findings (Separate)
 
 - **XGBoost is the best overall model** — highest F1 and ROC-AUC on all three datasets.
 - **valve1 & valve2** — both models perform strongly. Most files score F1 > 0.82, with several above 0.93.
@@ -109,12 +109,84 @@
 
 ---
 
+## Combined Dataset Results (valve1 + valve2 + other)
+
+All 34 files merged into a single dataset (37,459 rows, 35.3% anomaly rate) and evaluated with Group 5-Fold CV grouped by dataset/file.
+
+### Summary
+
+| Model         | F1     | Precision | Recall | ROC-AUC |
+|---------------|--------|-----------|--------|---------|
+| **XGBoost**   | **0.6749** | 0.7868 | **0.5908** | 0.7893 |
+| Random Forest | 0.6655 | **0.8251** | 0.5577 | **0.8056** |
+
+### Fold-by-Fold F1
+
+| Fold | XGBoost | Random Forest |
+|------|---------|---------------|
+| 1    | 0.6565  | 0.6184        |
+| 2    | 0.5713  | 0.6049        |
+| 3    | 0.6877  | 0.7191        |
+| 4    | 0.7935  | 0.7709        |
+| 5    | 0.6634  | 0.6052        |
+
+### Combined vs Separate — Head to Head
+
+| Model         | Separate F1 | Combined F1 | Change | Separate ROC-AUC | Combined ROC-AUC | Change |
+|---------------|-------------|-------------|--------|------------------|------------------|--------|
+| XGBoost       | 0.7141      | 0.6749      | -0.039 | 0.8063           | 0.7893           | -0.017 |
+| Random Forest | 0.6696      | 0.6655      | -0.004 | 0.8003           | 0.8056           | +0.005 |
+
+> Training separately per dataset is stronger for XGBoost. Random Forest is almost unchanged, with a slight ROC-AUC gain when combined.
+
+### Per-File F1 — Combined Run
+
+| Dataset | File   | XGBoost F1 | RF F1  |
+|---------|--------|------------|--------|
+| other   | 9.csv  | 0.8010     | 0.8315 |
+| other   | 11.csv | 0.8385     | 0.8286 |
+| other   | 12.csv | 0.7318     | 0.4478 |
+| other   | 13.csv | 0.8443     | 0.7825 |
+| other   | 14.csv | 0.5183     | 0.1034 |
+| other   | 15.csv | 0.3627     | 0.0898 |
+| other   | 16.csv | 0.1331     | 0.2158 |
+| other   | 17.csv | 0.0000     | 0.0050 |
+| other   | 18.csv | 0.3011     | 0.1438 |
+| other   | 19.csv | 0.3706     | 0.3851 |
+| other   | 20.csv | 0.0086     | 0.0000 |
+| other   | 21.csv | 0.0000     | 0.0000 |
+| other   | 22.csv | 0.4822     | 0.4053 |
+| other   | 23.csv | 0.0391     | 0.0262 |
+| valve1  | 0.csv  | 0.0995     | 0.0439 |
+| valve1  | 1.csv  | 0.3217     | 0.0144 |
+| valve1  | 2.csv  | 0.8957     | 0.8916 |
+| valve1  | 3.csv  | 0.9371     | 0.9439 |
+| valve1  | 4.csv  | 0.7423     | 0.9474 |
+| valve1  | 5.csv  | 0.8627     | 0.8649 |
+| valve1  | 6.csv  | 0.8441     | 0.8596 |
+| valve1  | 7.csv  | 0.8575     | 0.8655 |
+| valve1  | 8.csv  | 0.9543     | 0.9913 |
+| valve1  | 9.csv  | 0.8766     | 0.8875 |
+| valve1  | 10.csv | 0.8971     | 0.9029 |
+| valve1  | 11.csv | 0.8436     | 0.8632 |
+| valve1  | 12.csv | 0.9718     | 0.9730 |
+| valve1  | 13.csv | 0.8626     | 0.8959 |
+| valve1  | 14.csv | 0.9181     | 0.9061 |
+| valve1  | 15.csv | 0.8668     | 0.8652 |
+| valve2  | 0.csv  | 0.7328     | 0.8209 |
+| valve2  | 1.csv  | 0.9032     | 0.9114 |
+| valve2  | 2.csv  | 0.9049     | 0.9120 |
+| valve2  | 3.csv  | 0.8434     | 0.8681 |
+
+---
+
 ## Files in This Branch
 
 | File | Description |
 |------|-------------|
 | `SKAB_Anomaly_Detection_shreyan_supervised_unsupervised.ipynb` | Initial notebook — valve1 only, 4 algorithms (XGBoost, RF, Isolation Forest, LSTM Autoencoder) |
-| `SKAB_XGBoost_RandomForest_AllDatasets.ipynb` | Extended notebook — all 3 datasets, XGBoost & Random Forest, runs locally |
+| `SKAB_XGBoost_RandomForest_AllDatasets.ipynb` | Separate-dataset notebook — valve1, valve2, other individually |
+| `SKAB_XGBoost_RandomForest_Combined.ipynb` | Combined-dataset notebook — all 34 files merged, XGBoost & RF |
 | `SKAB_Results_Report.pdf` | Full PDF report with charts, tables and findings |
 
 ---
