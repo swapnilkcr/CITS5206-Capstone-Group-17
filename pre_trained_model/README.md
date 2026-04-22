@@ -18,6 +18,7 @@ python scripts/model_registry.py validate
 python scripts/model_registry.py list
 ```
 
+<<<<<<< HEAD
 ### What a good registry entry must include
 
 When adding a new model to the registry, clearly document:
@@ -62,6 +63,8 @@ Inference:
 Optional extension:
 - **contrastive regularization** (normal–normal pull, normal–anomaly push)
 
+=======
+>>>>>>> origin/Julie-work
 ### Notes
 
 - If artifacts are too large, keep them out of git and store them externally (e.g. cloud drive). Put the download link in the registry under `artifact_uri`.
