@@ -205,3 +205,17 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Local SKAB dataset checkout (git clone waico/SKAB)
+external/SKAB/
+
+# Pre-trained model artifacts (often large; keep registry tracked instead)
+pre_trained_model/artifacts/
+*.pt
+*.pth
+*.ckpt
+*.h5
+*.keras
+*.onnx
+*.joblib
+*.pkl
