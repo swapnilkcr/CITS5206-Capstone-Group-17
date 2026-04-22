@@ -1,0 +1,32 @@
+{
+  "out_dir": "Adapted-LSTM/dataset",
+  "split": {
+    "train_frac": 0.7,
+    "val_frac": 0.15,
+    "test_frac": 0.15
+  },
+  "files": {
+    "anomaly_free": "anomaly_free.csv",
+    "valve1_all": "valve1_all.csv",
+    "valve1_train": "valve1_train.csv",
+    "valve1_val": "valve1_val.csv",
+    "valve1_test": "valve1_test.csv",
+    "valve2_all": "valve2_all.csv",
+    "valve2_test": "valve2_test.csv"
+  },
+  "columns": {
+    "time_col": "datetime",
+    "feature_cols": [
+      "Accelerometer1RMS",
+      "Accelerometer2RMS",
+      "Current",
+      "Pressure",
+      "Temperature",
+      "Thermocouple",
+      "Voltage",
+      "Volume Flow RateRMS"
+    ],
+    "label_col": "anomaly",
+    "delimiter": ";"
+  }
+}

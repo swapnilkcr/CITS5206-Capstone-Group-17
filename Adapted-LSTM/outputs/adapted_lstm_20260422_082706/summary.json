@@ -1,0 +1,5 @@
+{
+  "best_epoch": 8,
+  "best_val_f1": 0.8949771689492642,
+  "threshold_quantile": 0.95
+}
