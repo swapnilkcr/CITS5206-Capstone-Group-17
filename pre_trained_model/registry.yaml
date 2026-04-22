@@ -1,0 +1,18 @@
+# Model registry for team-shared experiments.
+#
+# - Add one item per trained model.
+# - Keep the format consistent so scripts can parse it.
+#
+# Fields:
+# - model_id: stable unique id (string)
+# - owner: who trained it (string)
+# - created_at: ISO-8601 datetime (string)
+# - task: "pipe_anomaly_detection" (string)
+# - dataset: describes the dataset and split used (object)
+# - framework: "tensorflow", "pytorch", "sklearn" (string)
+# - artifact_uri: local path or external URL to artifacts (string)
+# - metrics: free-form key/value numbers (object)
+# - notes: optional (string)
+
+models: []
+
