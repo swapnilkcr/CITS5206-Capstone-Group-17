@@ -92,16 +92,27 @@ def train_and_save() -> None:
     scaler = StandardScaler()
     scaler.fit(baseline_feat[EXTENDED_COLS])
 
-    all_dfs: list[pd.DataFrame] = []
+    # Hold out the last 20% of files per dataset so users can test on unseen data.
+    # Held-out files: valve1/13-15, valve2/3, other/12-14
+    train_dfs: list[pd.DataFrame] = []
+    held_out: list[str] = []
     for dataset in ("valve1", "valve2", "other"):
         d = DATA_DIR / dataset
-        if d.exists():
-            for csv_file in sorted(d.glob("*.csv")):
-                df = read_skab_csv(csv_file)
-                df["source_file"] = csv_file.name
-                all_dfs.append(df)
+        if not d.exists():
+            continue
+        files = sorted(d.glob("*.csv"))
+        cutoff = max(1, int(len(files) * 0.8))
+        for i, csv_file in enumerate(files):
+            df = read_skab_csv(csv_file)
+            df["source_file"] = csv_file.name
+            if i < cutoff:
+                train_dfs.append(df)
+            else:
+                held_out.append(str(csv_file.relative_to(DATA_DIR.parent)))
 
-    combined = pd.concat(all_dfs, ignore_index=True)
+    print(f"  Held-out files (for testing): {held_out}")
+
+    combined = pd.concat(train_dfs, ignore_index=True)
     feat_df  = add_rolling_features(combined)
 
     X = scaler.transform(feat_df[EXTENDED_COLS])
