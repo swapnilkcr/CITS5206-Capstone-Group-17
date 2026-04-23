@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
 Pump Failure Detection — Flask backend
-Trains XGBoost & Random Forest on SKAB data at startup,
-then serves predictions via /api/predict.
+Uses Leave-One-Out (LOGO) evaluation to match the Group K-Fold results
+from the notebook: when a known SKAB file is uploaded, the model trains
+on all OTHER files and predicts on the uploaded one — giving honest metrics.
 """
 from __future__ import annotations
 
+import hashlib
 import io
-import json
 from pathlib import Path
 
 import joblib
@@ -77,89 +78,134 @@ def parse_uploaded_csv(file_bytes: bytes) -> pd.DataFrame:
     raise ValueError("Could not parse CSV — try semicolon or comma separated.")
 
 
-# ---------------------------------------------------------------------------
-# Training
-# ---------------------------------------------------------------------------
-def train_and_save() -> None:
-    print("=" * 60)
-    print("Training models on SKAB data (first run — please wait)…")
-    print("=" * 60)
+def file_hash(data: bytes) -> str:
+    return hashlib.md5(data).hexdigest()
 
-    baseline_path = DATA_DIR / "anomaly-free" / "anomaly-free.csv"
-    baseline_df   = read_skab_csv(baseline_path)
+
+# ---------------------------------------------------------------------------
+# Index all SKAB files by MD5 hash at startup
+# ---------------------------------------------------------------------------
+def build_skab_index() -> dict[str, Path]:
+    """Returns {md5_hash: path} for every SKAB CSV file."""
+    index: dict[str, Path] = {}
+    for dataset in ("valve1", "valve2", "other"):
+        d = DATA_DIR / dataset
+        if d.exists():
+            for f in sorted(d.glob("*.csv")):
+                index[file_hash(f.read_bytes())] = f
+    print(f"  SKAB index: {len(index)} files indexed.")
+    return index
+
+
+# ---------------------------------------------------------------------------
+# Scaler (fitted on anomaly-free baseline, shared across all evaluations)
+# ---------------------------------------------------------------------------
+def fit_or_load_scaler() -> StandardScaler:
+    scaler_path = MODELS_DIR / "scaler.joblib"
+    if scaler_path.exists():
+        return joblib.load(scaler_path)
+    baseline_df   = read_skab_csv(DATA_DIR / "anomaly-free" / "anomaly-free.csv")
     baseline_feat = add_rolling_features(baseline_df)
-
     scaler = StandardScaler()
     scaler.fit(baseline_feat[EXTENDED_COLS])
+    joblib.dump(scaler, scaler_path)
+    return scaler
 
-    # Hold out the last 20% of files per dataset so users can test on unseen data.
-    # Held-out files: valve1/13-15, valve2/3, other/12-14
+
+# ---------------------------------------------------------------------------
+# Build a model trained on all files EXCEPT `exclude_path`  (LOGO logic)
+# ---------------------------------------------------------------------------
+def train_logo_model(model_choice: str, exclude_path: Path) -> RandomForestClassifier | XGBClassifier:
     train_dfs: list[pd.DataFrame] = []
-    held_out: list[str] = []
     for dataset in ("valve1", "valve2", "other"):
         d = DATA_DIR / dataset
         if not d.exists():
             continue
-        files = sorted(d.glob("*.csv"))
-        cutoff = max(1, int(len(files) * 0.8))
-        for i, csv_file in enumerate(files):
+        for csv_file in sorted(d.glob("*.csv")):
+            if csv_file.resolve() == exclude_path.resolve():
+                continue
             df = read_skab_csv(csv_file)
             df["source_file"] = csv_file.name
-            if i < cutoff:
-                train_dfs.append(df)
-            else:
-                held_out.append(str(csv_file.relative_to(DATA_DIR.parent)))
-
-    print(f"  Held-out files (for testing): {held_out}")
+            train_dfs.append(df)
 
     combined = pd.concat(train_dfs, ignore_index=True)
     feat_df  = add_rolling_features(combined)
-
-    X = scaler.transform(feat_df[EXTENDED_COLS])
+    X = _scaler.transform(feat_df[EXTENDED_COLS])
     y = feat_df["anomaly"].values
 
     neg = (y == 0).sum()
     pos = (y == 1).sum()
     scale_pos = neg / pos if pos > 0 else 1.0
 
-    print(f"  Total rows: {len(y)} | Anomaly rate: {y.mean():.1%}")
+    if model_choice == "xgboost":
+        clf = XGBClassifier(
+            n_estimators=150, max_depth=6,
+            scale_pos_weight=scale_pos,
+            eval_metric="logloss",
+            random_state=42, n_jobs=-1,
+        )
+    else:
+        clf = RandomForestClassifier(
+            n_estimators=150,
+            class_weight="balanced",
+            random_state=42, n_jobs=-1,
+        )
+    clf.fit(X, y)
+    return clf
 
-    print("  Training XGBoost…")
-    xgb = XGBClassifier(
-        n_estimators=150, max_depth=6,
-        scale_pos_weight=scale_pos,
-        eval_metric="logloss",
-        random_state=42, n_jobs=-1,
-    )
+
+# ---------------------------------------------------------------------------
+# Fallback full model (for truly unknown files with no ground truth)
+# ---------------------------------------------------------------------------
+def train_and_save_full() -> None:
+    print("Training fallback full model…")
+    all_dfs: list[pd.DataFrame] = []
+    for dataset in ("valve1", "valve2", "other"):
+        d = DATA_DIR / dataset
+        if d.exists():
+            for csv_file in sorted(d.glob("*.csv")):
+                df = read_skab_csv(csv_file)
+                df["source_file"] = csv_file.name
+                all_dfs.append(df)
+
+    combined = pd.concat(all_dfs, ignore_index=True)
+    feat_df  = add_rolling_features(combined)
+    X = _scaler.transform(feat_df[EXTENDED_COLS])
+    y = feat_df["anomaly"].values
+
+    neg, pos = (y == 0).sum(), (y == 1).sum()
+    scale_pos = neg / pos if pos > 0 else 1.0
+
+    xgb = XGBClassifier(n_estimators=150, max_depth=6, scale_pos_weight=scale_pos,
+                         eval_metric="logloss", random_state=42, n_jobs=-1)
     xgb.fit(X, y)
 
-    print("  Training Random Forest…")
-    rf = RandomForestClassifier(
-        n_estimators=150,
-        class_weight="balanced",
-        random_state=42, n_jobs=-1,
-    )
+    rf = RandomForestClassifier(n_estimators=150, class_weight="balanced",
+                                 random_state=42, n_jobs=-1)
     rf.fit(X, y)
 
-    joblib.dump(scaler, MODELS_DIR / "scaler.joblib")
-    joblib.dump(xgb,    MODELS_DIR / "xgboost.joblib")
-    joblib.dump(rf,     MODELS_DIR / "random_forest.joblib")
-    print("  Models saved to models_cache/")
-    print("=" * 60)
+    joblib.dump(xgb, MODELS_DIR / "xgboost_full.joblib")
+    joblib.dump(rf,  MODELS_DIR / "random_forest_full.joblib")
+    print("  Fallback models saved.")
 
 
 # ---------------------------------------------------------------------------
-# Load (or train) models at startup
+# Startup
 # ---------------------------------------------------------------------------
-if not (MODELS_DIR / "xgboost.joblib").exists():
-    train_and_save()
+print("=" * 60)
+print("Pump Failure Detection — starting up…")
+_scaler     = fit_or_load_scaler()
+_skab_index = build_skab_index()
 
-_scaler  = joblib.load(MODELS_DIR / "scaler.joblib")
-_models  = {
-    "xgboost":       joblib.load(MODELS_DIR / "xgboost.joblib"),
-    "random_forest": joblib.load(MODELS_DIR / "random_forest.joblib"),
+if not (MODELS_DIR / "xgboost_full.joblib").exists():
+    train_and_save_full()
+
+_full_models = {
+    "xgboost":       joblib.load(MODELS_DIR / "xgboost_full.joblib"),
+    "random_forest": joblib.load(MODELS_DIR / "random_forest_full.joblib"),
 }
-print("Models ready.")
+print("Ready — LOGO evaluation active for known SKAB files.")
+print("=" * 60)
 
 # ---------------------------------------------------------------------------
 # Flask app
@@ -175,7 +221,7 @@ def index():
 
 @app.route("/api/health")
 def health():
-    return jsonify({"status": "ok", "models": list(_models.keys())})
+    return jsonify({"status": "ok", "skab_files": len(_skab_index)})
 
 
 @app.route("/api/predict", methods=["POST"])
@@ -184,13 +230,13 @@ def predict():
         return jsonify({"error": "No file uploaded"}), 400
 
     model_choice = request.form.get("model", "xgboost")
-    if model_choice not in _models:
+    if model_choice not in _full_models:
         return jsonify({"error": f"Unknown model: {model_choice}"}), 400
 
     raw_bytes = request.files["file"].read()
     filename  = request.files["file"].filename or "uploaded.csv"
 
-    # ── Step 1 : Load ────────────────────────────────────────────────────────
+    # ── Step 1 : Load ─────────────────────────────────────────────────────────
     try:
         df = parse_uploaded_csv(raw_bytes)
     except ValueError as exc:
@@ -198,74 +244,82 @@ def predict():
 
     missing = [c for c in FEATURE_COLS if c not in df.columns]
     if missing:
-        return jsonify({
-            "error": (
-                f"Missing required sensor columns: {missing}. "
-                "Make sure your CSV has the standard SKAB column names."
-            )
-        }), 400
+        return jsonify({"error": f"Missing required columns: {missing}"}), 400
 
-    has_labels = "anomaly" in df.columns
+    has_labels   = "anomaly" in df.columns
+    uploaded_md5 = file_hash(raw_bytes)
+    matched_path = _skab_index.get(uploaded_md5)       # None if unknown file
+    is_known     = matched_path is not None
 
     step1 = {
-        "id": 1, "name": "File Loaded",
-        "icon": "📁",
+        "id": 1, "name": "File Loaded", "icon": "📁",
         "detail": (
-            f"<strong>{len(df):,} rows</strong> and "
+            f"<strong>{len(df):,} rows</strong> · "
             f"<strong>{len(FEATURE_COLS)} sensor columns</strong> detected. "
-            + ("Ground-truth labels found — full metrics will be computed."
-               if has_labels else
-               "No 'anomaly' column — anomaly scores only (no F1/Recall).")
+            + (f"Recognised as <strong>{matched_path.parent.name}/{matched_path.name}</strong> — "
+               "Leave-One-Out evaluation will be used for honest metrics."
+               if is_known else
+               ("Ground-truth labels found." if has_labels else "No labels — anomaly scores only."))
         ),
     }
 
-    # ── Step 2 : Feature engineering ─────────────────────────────────────────
+    # ── Step 2 : Feature engineering ──────────────────────────────────────────
     feat_df = add_rolling_features(df)
-
     step2 = {
-        "id": 2, "name": "Feature Engineering",
-        "icon": "⚙️",
+        "id": 2, "name": "Feature Engineering", "icon": "⚙️",
         "detail": (
-            f"Added a <strong>5-point rolling average and variability score</strong> for each of "
-            f"the {len(FEATURE_COLS)} sensors — giving the model short-term memory "
-            "so it can spot gradual drifts, not just sudden spikes. "
-            f"Feature count: <strong>{len(EXTENDED_COLS)}</strong>."
+            f"Computed <strong>5-point rolling mean &amp; std</strong> for each of the "
+            f"{len(FEATURE_COLS)} sensors — expanding to "
+            f"<strong>{len(EXTENDED_COLS)} features</strong> total. "
+            "This gives the model short-term memory to catch gradual drifts, not just sudden spikes."
         ),
     }
 
-    # ── Step 3 : Normalisation ────────────────────────────────────────────────
+    # ── Step 3 : Normalisation ─────────────────────────────────────────────────
     try:
         X = _scaler.transform(feat_df[EXTENDED_COLS])
     except Exception as exc:
         return jsonify({"error": f"Scaling failed: {exc}"}), 500
 
     step3 = {
-        "id": 3, "name": "Normalisation",
-        "icon": "⚖️",
+        "id": 3, "name": "Normalisation", "icon": "⚖️",
         "detail": (
-            "Each sensor reading was <strong>scaled to the same range</strong> using the pump's "
-            "known-normal baseline, so a high-voltage reading doesn't overshadow a tiny pressure "
-            "fluctuation. Think of it as converting all units to the same language."
+            "All sensor readings scaled to a common range using the pump's "
+            "<strong>anomaly-free baseline</strong>, so no single sensor dominates. "
+            "Like converting miles and km to the same unit before comparing."
         ),
     }
 
-    # ── Step 4 : Inference ────────────────────────────────────────────────────
-    clf    = _models[model_choice]
+    # ── Step 4 : Train + infer ────────────────────────────────────────────────
+    model_label = "XGBoost" if model_choice == "xgboost" else "Random Forest"
+
+    if is_known and has_labels:
+        # LOGO: fresh model trained on all SKAB files except this one
+        step4 = {
+            "id": 4, "name": "Leave-One-Out Training", "icon": "🤖",
+            "detail": (
+                f"Training <strong>{model_label}</strong> on all SKAB files "
+                f"<em>except</em> this one — then predicting on this file. "
+                "This is the same evaluation strategy used in the research notebook "
+                "and gives <strong>honest, unbiased metrics</strong>."
+            ),
+        }
+        clf = train_logo_model(model_choice, matched_path)
+    else:
+        step4 = {
+            "id": 4, "name": "Model Running", "icon": "🤖",
+            "detail": (
+                f"<strong>{model_label}</strong> (trained on all SKAB data) examined "
+                f"each of the {len(df):,} readings and assigned an "
+                "<strong>anomaly probability score</strong> (0 = normal, 1 = anomaly)."
+            ),
+        }
+        clf = _full_models[model_choice]
+
     preds  = clf.predict(X)
     probas = clf.predict_proba(X)[:, 1]
 
-    model_label = "XGBoost" if model_choice == "xgboost" else "Random Forest"
-    step4 = {
-        "id": 4, "name": "Model Running",
-        "icon": "🤖",
-        "detail": (
-            f"<strong>{model_label}</strong> examined each of the {len(df):,} readings "
-            "and assigned an <strong>anomaly probability score</strong> between 0 and 1. "
-            "Scores above 0.5 are flagged as anomalies."
-        ),
-    }
-
-    # ── Step 5 : Results ──────────────────────────────────────────────────────
+    # ── Step 5 : Results ───────────────────────────────────────────────────────
     anomaly_count = int(preds.sum())
     normal_count  = len(preds) - anomaly_count
     anomaly_rate  = round(float(preds.mean()) * 100, 1)
@@ -275,50 +329,46 @@ def predict():
 
     if has_labels:
         y_true = df["anomaly"].values.astype(int)
-        unique_labels = np.unique(y_true)
-
         metrics = {
             "f1":        round(float(f1_score(y_true, preds, zero_division=0)), 4),
             "precision": round(float(precision_score(y_true, preds, zero_division=0)), 4),
             "recall":    round(float(recall_score(y_true, preds, zero_division=0)), 4),
             "roc_auc":   (
                 round(float(roc_auc_score(y_true, probas)), 4)
-                if len(unique_labels) > 1 else None
+                if len(np.unique(y_true)) > 1 else None
             ),
         }
-        cm = confusion_matrix(y_true, preds)
-        confusion = cm.tolist()
+        confusion = confusion_matrix(y_true, preds).tolist()
 
     step5 = {
-        "id": 5, "name": "Results Ready",
-        "icon": "📊",
+        "id": 5, "name": "Results Ready", "icon": "📊",
         "detail": (
-            f"<strong>{anomaly_count}</strong> anomalies detected out of "
+            f"<strong>{anomaly_count:,}</strong> anomalies out of "
             f"<strong>{len(df):,}</strong> readings "
-            f"(<strong>{anomaly_rate}%</strong> anomaly rate)."
-            + (f" F1 score: <strong>{metrics['f1']}</strong>." if metrics else "")
+            f"(<strong>{anomaly_rate}%</strong>)."
+            + (f" F1: <strong>{metrics['f1']}</strong>." if metrics else "")
         ),
     }
 
-    # Downsample predictions for the timeline chart (max 1000 points)
-    step = max(1, len(probas) // 1000)
+    step_size = max(1, len(probas) // 1000)
     timeline = [
         {"i": int(i), "prob": round(float(probas[i]), 4), "pred": int(preds[i])}
-        for i in range(0, len(probas), step)
+        for i in range(0, len(probas), step_size)
     ]
 
     return jsonify({
-        "steps":          [step1, step2, step3, step4, step5],
-        "metrics":        metrics,
-        "has_labels":     has_labels,
-        "timeline":       timeline,
-        "total_rows":     len(df),
-        "anomaly_count":  anomaly_count,
-        "normal_count":   normal_count,
-        "anomaly_rate":   anomaly_rate,
-        "model":          model_label,
-        "confusion":      confusion,
-        "filename":       filename,
+        "steps":         [step1, step2, step3, step4, step5],
+        "metrics":       metrics,
+        "has_labels":    has_labels,
+        "is_known":      is_known,
+        "timeline":      timeline,
+        "total_rows":    len(df),
+        "anomaly_count": anomaly_count,
+        "normal_count":  normal_count,
+        "anomaly_rate":  anomaly_rate,
+        "model":         model_label,
+        "confusion":     confusion,
+        "filename":      filename,
     })
 
 
