@@ -9,7 +9,7 @@ This repository is for **CITS5206 Capstone (2026 Semester 1)**, **Group 17**.
 
 ## Dataset storage (important)
 
-We keep datasets under **`external/`** so that project code stays clean and datasets can be swapped/updated without mixing with source code.
+We keep datasets under **`data/`** so that project code stays clean and datasets can be swapped/updated without mixing with source code.
 
 - **Current dataset**: SKAB is located at `external/SKAB/`
 - **Rule for future datasets**: put them under `external/<DATASET_NAME>/` (and add to `.gitignore` if needed)
@@ -28,9 +28,9 @@ If you are working on a GPU server, you can either:
   - Includes a **registry** so everyone can discover and reuse models consistently
   - Registry file: `pre_trained_model/registry.yaml`
   - Helper script: `scripts/model_registry.py`
-- **`external/`**
+- **`data/`**
   - External datasets and third-party checkouts
-  - Current: `external/SKAB/`
+  - Current: `data/SKAB/`
 - **`scripts/`**
   - Small helper scripts (e.g., model registry tooling)
 
