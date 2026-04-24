@@ -316,6 +316,44 @@ body {
   padding: 8px 4px;
 }
 
+/* ── Mode toggle ───────────────────────────────────────── */
+.mode-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  background: #f1f5f9;
+  border-radius: 12px;
+  padding: 4px;
+}
+.mode-btn {
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  padding: 10px 8px;
+  font-weight: 600;
+  font-size: .88rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .2s;
+}
+.mode-btn.active {
+  background: #fff;
+  color: var(--blue);
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+}
+
+/* ── Per-file table F1 badge ───────────────────────────── */
+.f1-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: .82rem;
+}
+.f1-high   { background: #dcfce7; color: #166534; }
+.f1-medium { background: #fff7ed; color: #c2410c; }
+.f1-low    { background: #fee2e2; color: #b91c1c; }
+
 /* ── Responsive ────────────────────────────────────────── */
 @media (max-width: 991px) {
   .hero-title { font-size: 1.4rem; }
