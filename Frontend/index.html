@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pump Failure Detection</title>
+
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg app-navbar">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="#">Pump Failure Detection</a>
+      <span class="navbar-text text-light small">
+        Predict anomalies from uploaded sensor data
+      </span>
+    </div>
+  </nav>
+
+  <main class="container py-4 py-lg-5">
+    <section class="hero-section mb-4">
+      <div class="hero-card">
+        <div class="row align-items-center g-4">
+          <div class="col-lg-8">
+            <p class="eyebrow mb-2">Predictive Maintenance Dashboard</p>
+            <h1 class="hero-title mb-3">Upload data, choose a model, and check pump failure risk</h1>
+            <p class="hero-text mb-0">
+              This interface lets users upload a CSV dataset, select an anomaly detection model,
+              and review prediction results in a simple dashboard.
+            </p>
+          </div>
+          <div class="col-lg-4">
+            <div class="hero-stats">
+              <div class="hero-stat-box">
+                <span class="stat-label">Supported Input</span>
+                <strong>CSV</strong>
+              </div>
+              <div class="hero-stat-box">
+                <span class="stat-label">Models</span>
+                <strong>3 Options</strong>
+              </div>
+              <div class="hero-stat-box">
+                <span class="stat-label">Output</span>
+                <strong>Anomaly Risk</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="row g-4">
+      <div class="col-xl-5">
+        <div class="card app-card h-100">
+          <div class="card-body p-4">
+            <div class="section-heading mb-4">
+              <h3 class="mb-1">Upload Dataset</h3>
+              <p class="text-muted mb-0">Choose a CSV file and select the detection model.</p>
+            </div>
+
+            <div
+              id="uploadArea"
+              class="upload-area mb-4"
+              tabindex="0"
+              role="button"
+              aria-label="Upload CSV file"
+            >
+              <input
+                class="d-none"
+                type="file"
+                id="datasetFile"
+                accept=".csv"
+              />
+              <div class="upload-icon mb-3">📂</div>
+              <h5 class="mb-2">Drag and drop your CSV here</h5>
+              <p class="text-muted mb-2">or click to browse files</p>
+              <div id="selectedFileName" class="selected-file">No file selected</div>
+            </div>
+
+            <div class="mb-3">
+              <label for="algorithm" class="form-label fw-semibold">Choose Algorithm</label>
+              <select class="form-select custom-input" id="algorithm">
+                <option value="if">Isolation Forest</option>
+                <option value="ecod">ECOD</option>
+                <option value="transformer">Anomaly Transformer</option>
+              </select>
+              <div id="algorithmHint" class="form-hint mt-2">
+                Good baseline model for unsupervised anomaly detection.
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label for="sequenceLength" class="form-label fw-semibold">Sequence Length</label>
+              <input
+                type="number"
+                class="form-control custom-input"
+                id="sequenceLength"
+                value="30"
+                min="1"
+              />
+              <div class="form-hint mt-2">
+                Used for window-based sequence processing.
+              </div>
+            </div>
+
+            <div class="d-grid">
+              <button class="btn btn-primary app-btn" id="predictBtn">
+                Run Prediction
+              </button>
+            </div>
+
+            <div class="mt-3">
+              <div id="statusMessage" class="status-message d-none"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-xl-7">
+        <div class="card app-card h-100">
+          <div class="card-body p-4">
+            <div class="section-heading mb-4">
+              <h3 class="mb-1">Prediction Results</h3>
+              <p class="text-muted mb-0">Review the output summary and window-level predictions.</p>
+            </div>
+
+            <div id="emptyState" class="empty-state">
+              <div class="empty-icon mb-3">📊</div>
+              <h5>No prediction yet</h5>
+              <p class="text-muted mb-0">
+                Upload a dataset and click <strong>Run Prediction</strong> to see the result.
+              </p>
+            </div>
+
+            <div id="loadingState" class="loading-state d-none">
+              <div class="spinner-border text-primary mb-3" role="status"></div>
+              <h5>Processing dataset...</h5>
+              <p class="text-muted mb-0">Please wait while the model analyzes the uploaded file.</p>
+            </div>
+
+            <div id="resultSection" class="d-none">
+              <div id="predictionBanner" class="prediction-banner mb-4">
+                <div>
+                  <div class="prediction-label">Overall Prediction</div>
+                  <div id="predictionText" class="prediction-text">Failure Likely</div>
+                </div>
+                <span id="predictionBadge" class="prediction-badge">High Risk</span>
+              </div>
+
+              <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                  <div class="summary-card">
+                    <span class="summary-label">Algorithm</span>
+                    <strong id="resultAlgorithm">-</strong>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="summary-card">
+                    <span class="summary-label">Uploaded File</span>
+                    <strong id="resultFile">-</strong>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="summary-card">
+                    <span class="summary-label">Anomaly Ratio</span>
+                    <strong id="resultRatio">-</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div class="results-toolbar mb-3">
+                <h5 class="mb-0">Window Results</h5>
+                <span id="windowCount" class="results-count">0 windows</span>
+              </div>
+
+              <div class="table-responsive">
+                <table class="table custom-table align-middle mb-0">
+                  <thead>
+                    <tr>
+                      <th>Window</th>
+                      <th>Score</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="resultsTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
