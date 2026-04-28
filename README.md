@@ -1,193 +1,60 @@
-# Predictive Maintenance on SKAB using Isolation Forest
+# CITS5206 Capstone (2026 SEM-1) — Group 17
 
-This project implements an **Isolation Forest-based anomaly detection pipeline** on the **SKAB (Skoltech Anomaly Benchmark)** dataset for predictive maintenance experiments.
+## Project overview
 
-The goal is to detect abnormal pump behaviour using sensor readings from the dataset and evaluate how well an unsupervised model can identify anomalies across multiple files.
+This repository is for **CITS5206 Capstone (2026 Semester 1)**, **Group 17**.
 
-## Project Overview
+- **Project**: Implementation of anomaly detection for **water pump maintenance**
+- **Dataset**: **SKAB (Skoltech Anomaly Benchmark)** — see [waico/SKAB](https://github.com/waico/SKAB)
 
-This notebook-based workflow was developed in **Google Colab** and uses:
+## Dataset storage (important)
 
-- **Python**
-- **Pandas / NumPy** for data processing
-- **Scikit-learn** for scaling and Isolation Forest
-- **Matplotlib** for plotting results
+We keep datasets under **`data/`** so that project code stays clean and datasets can be swapped/updated without mixing with source code.
 
-The approach follows a structured evaluation pipeline:
+- **Current dataset**: SKAB is located at `external/SKAB/`
+- **Rule for future datasets**: put them under `external/<DATASET_NAME>/` (and add to `.gitignore` if needed)
 
-1. Train on **anomaly-free SKAB data** only
-2. Engineer **rolling mean** and **rolling standard deviation** features
-3. Scale data using `StandardScaler`
-4. Train an **Isolation Forest** model on normal data
-5. Set anomaly threshold from **training scores**
-6. Test on **all labeled SKAB files**
-7. Evaluate performance per file using:
-   - F1-score
-   - Precision
-   - Recall
-   - ROC-AUC
-   - Confusion Matrix
+If you are working on a GPU server, you can either:
+- clone datasets directly on the server under the project’s `external/`, or
+- sync them from your local machine (but avoid committing large CSVs/weights to git).
 
-## Dataset
+## Repository structure
 
-The project uses the **SKAB dataset**, which contains multivariate sensor data for predictive maintenance and anomaly detection experiments.
+- **`ipynb_scripts/`**
+  - Team members’ Jupyter notebooks (experiments, EDA, training runs, etc.)
+  - Keep notebooks here (do not leave notebooks in the repo root)
+- **`pre_trained_model/`**
+  - Shared location for team-trained models and weights
+  - Includes a **registry** so everyone can discover and reuse models consistently
+  - Registry file: `pre_trained_model/registry.yaml`
+  - Helper script: `scripts/model_registry.py`
+- **`data/`**
+  - External datasets and third-party checkouts
+  - Current: `data/SKAB/`
+- **`scripts/`**
+  - Small helper scripts (e.g., model registry tooling)
 
-Training data:
-- `SKAB/anomaly-free/anomaly-free.csv`
+## Model registry (team workflow)
 
-Testing data:
-- all labeled CSV files under the SKAB folders such as:
-  - `valve1`
-  - `valve2`
-  - `other`
+When you train a new model and want others to reuse it:
 
-## Features Used
+1. Put artifacts (weights, configs, etc.) under:
+   - `pre_trained_model/artifacts/<your_name>/<model_id>/...`
+2. Register the model in:
+   - `pre_trained_model/registry.yaml`
 
-Base sensor features:
+The registry entry should clearly state:
+- **author/owner**
+- **algorithm/framework**
+- **expected input** (features, windowing, preprocessing assumptions)
+- **output** (score/probability/label, thresholds if applicable)
+- **metrics** (F1, FAR/MAR, NAB, etc. as relevant)
+- **artifact location** (`artifact_uri` local path or external download link)
 
-- `Accelerometer1RMS`
-- `Accelerometer2RMS`
-- `Current`
-- `Pressure`
-- `Temperature`
-- `Thermocouple`
-- `Voltage`
-- `Volume Flow RateRMS`
+You can validate/list the registry with:
 
-Engineered features:
-- rolling mean
-- rolling standard deviation
-
-These rolling features help capture short-term trends in the time-series data.
-
-## Methodology
-
-### 1. Training
-
-Only anomaly-free data is used for training to simulate an unsupervised anomaly detection setting.
-
-### 2. Feature Engineering
-
-For each file, rolling statistics are computed per feature using a fixed window size.
-
-### 3. Scaling
-
-A `StandardScaler` is fitted on the anomaly-free training data and then reused for all test files.
-
-### 4. Isolation Forest
-
-The model is trained on scaled normal data.
-
-Example parameters used:
-
-```python
-IsolationForest(
-    n_estimators=300,
-    contamination=0.01,
-    random_state=42,
-    n_jobs=-1
-)
+```bash
+python scripts/model_registry.py validate
+python scripts/model_registry.py list
 ```
 
-### 5. Threshold Selection
-
-The anomaly threshold is selected from the **training score distribution**, not from the test data.
-
-Thresholds tested:
-- 95th percentile
-- 97th percentile
-- 99th percentile
-
-This was done to study the precision-recall trade-off.
-
-## Key Findings
-
-- Lower thresholds gave **very high recall** but also produced many **false positives**.
-- Higher thresholds improved **precision** but reduced **recall**.
-- The **97th percentile threshold** provided the best balance in this experiment.
-
-This shows a common trade-off in anomaly detection:
-
-- **High recall** means most anomalies are detected
-- **Low precision** means many false alarms are generated
-
-## Results Summary
-
-The model was evaluated file-by-file across the SKAB test folders.
-
-Example observations:
-
-- Some files achieved relatively strong F1 scores
-- Some files remained difficult for Isolation Forest
-- Performance was inconsistent across different anomaly patterns
-
-This suggests that Isolation Forest is a useful **unsupervised baseline**, but supervised models such as **XGBoost** or **Random Forest** may provide more stable performance when labeled anomaly data is available.
-
-## How to Run in Google Colab
-
-### 1. Upload the dataset
-Upload `SKAB.zip` to Colab and unzip it:
-
-```python
-from google.colab import files
-uploaded = files.upload()
-
-!unzip -o SKAB.zip
-!ls SKAB
-```
-
-### 2. Install dependencies if needed
-
-```python
-!pip install scikit-learn pandas matplotlib
-```
-
-### 3. Run the notebook cells in order
-The workflow includes:
-- imports
-- defining base features
-- rolling feature generation
-- training on anomaly-free data
-- threshold selection
-- evaluation on all test files
-- plotting and summary tables
-
-## Repository Structure
-
-A suggested structure for this project:
-
-```text
-project/
-│
-├── README.md
-├── notebooks/
-│   └── isolation_forest_skab.ipynb
-├── data/
-│   └── SKAB.zip
-└── results/
-    ├── summary_metrics.csv
-    └── plots/
-```
-
-## Limitations
-
-- Isolation Forest does not explicitly model temporal dependencies like sequence models do.
-- Performance varies across different SKAB files.
-- The model may generate false positives depending on threshold choice.
-- Some anomaly files are harder to separate from normal behaviour.
-
-## Future Improvements
-
-Possible next steps:
-
-- compare against supervised models such as XGBoost and Random Forest
-- reduce noisy features through feature selection
-- try different rolling window sizes
-- compare row-based vs sequence-based anomaly detection
-- test advanced time-series models such as Autoencoders or Transformer-based methods
-
-## Conclusion
-
-This project demonstrates a complete unsupervised anomaly detection pipeline for predictive maintenance using Isolation Forest on the SKAB dataset.
-
-It provides a strong baseline for comparison with supervised approaches and highlights the importance of threshold tuning, feature engineering, and per-file evaluation when working with real-world style anomaly detection tasks.
