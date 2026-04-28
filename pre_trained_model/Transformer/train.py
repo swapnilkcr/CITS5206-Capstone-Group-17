@@ -9,7 +9,7 @@ from model import TransformerAE
 from utils import compute_errors, unpack_batch
 
 # ===== CONFIG =====
-TRAIN_FILE = "data/test.csv"
+TRAIN_FILE = "data/anomaly-free_v1.csv"
 VAL_FILE   = "data/6.csv"
 
 MODEL_PATH = "models/best_model.pth"
@@ -72,13 +72,19 @@ def train_model(model, train_loader, val_loader, device):
 if __name__ == "__main__":
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # df = pd.read_csv(TRAIN_FILE, sep=';', header=0, engine='python')
+    
+    train_df = pd.read_csv(TRAIN_FILE, sep=';', header=0, engine='python',on_bad_lines='skip')
+    train_df = train_df.iloc[:, :9]
 
-    train_df = pd.read_csv(TRAIN_FILE, sep=';')
     val_df   = pd.read_csv(VAL_FILE, sep=';')
 
     # ===== SAFE NORMAL FILTER =====
     if "anomaly" in train_df.columns:
         train_df = train_df[train_df["anomaly"] == 0]
+
+    
+    
 
     train_dataset = SKABDataset(train_df, seq_len=60)
     scaler = train_dataset.scaler
