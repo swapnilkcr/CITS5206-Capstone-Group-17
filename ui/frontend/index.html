@@ -76,6 +76,10 @@
             <select id="modelSelect" class="form-select custom-select mb-1">
               <option value="xgboost">XGBoost</option>
               <option value="random_forest">Random Forest</option>
+              <option value="isolation_forest">Isolation Forest</option>
+              <option value="lstm_autoencoder">LSTM Autoencoder</option>
+              <option value="transformer">Transformer Autoencoder</option>
+              <option value="adapted_lstm">Adapted LSTM (ALSS-SVDD)</option>
             </select>
             <p id="modelHint" class="text-muted small mb-4"></p>
 
@@ -116,7 +120,8 @@
               </div>
               <div class="row g-3 mb-4" id="summaryCards"></div>
               <div id="metricsSection" class="mb-4 d-none">
-                <h6 class="fw-bold mb-3">Model Accuracy Metrics</h6>
+                <h6 class="fw-bold mb-1">Model Accuracy Metrics</h6>
+                <p class="text-muted small mb-3">How well the model performed — higher is always better.</p>
                 <div class="row g-3 mb-3" id="metricCards"></div>
                 <canvas id="metricsChart" height="90"></canvas>
               </div>
@@ -126,7 +131,8 @@
                 <canvas id="timelineChart" height="130"></canvas>
               </div>
               <div id="confusionSection" class="mb-4 d-none">
-                <h6 class="fw-bold mb-2">Confusion Matrix</h6>
+                <h6 class="fw-bold mb-1">Confusion Matrix</h6>
+                <p class="text-muted small mb-3">A breakdown of every prediction the model made — were faults caught, missed, or falsely alarmed?</p>
                 <div id="confusionMatrix" class="confusion-wrap"></div>
               </div>
             </div>
@@ -148,7 +154,8 @@
 
               <!-- Overall metrics -->
               <div class="mb-4">
-                <h6 class="fw-bold mb-3">Overall Metrics</h6>
+                <h6 class="fw-bold mb-1">Overall Metrics</h6>
+                <p class="text-muted small mb-3">How well the model performed across all files — higher is always better.</p>
                 <div class="row g-3 mb-3" id="zipMetricCards"></div>
                 <canvas id="zipMetricsChart" height="90"></canvas>
               </div>
@@ -189,7 +196,8 @@
 
               <!-- Confusion matrix -->
               <div id="zipConfusionSection" class="mb-4">
-                <h6 class="fw-bold mb-2">Confusion Matrix</h6>
+                <h6 class="fw-bold mb-1">Confusion Matrix</h6>
+                <p class="text-muted small mb-3">A breakdown of every prediction the model made — were faults caught, missed, or falsely alarmed?</p>
                 <div id="zipConfusionMatrix" class="confusion-wrap"></div>
               </div>
 

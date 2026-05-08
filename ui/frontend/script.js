@@ -68,8 +68,12 @@ function setMode(mode) {
 
 // ── Model hints ───────────────────────────────────────────────────────────────
 const MODEL_HINTS = {
-  xgboost:       "Gradient-boosted trees — fast, handles class imbalance well. Best overall on SKAB.",
-  random_forest: "Ensemble of decision trees — robust and stable. Slightly lower recall but very consistent.",
+  xgboost:          "Gradient-boosted trees — fast, handles class imbalance well. Best overall on SKAB.",
+  random_forest:    "Ensemble of decision trees — robust and stable. Slightly lower recall but very consistent.",
+  isolation_forest: "Unsupervised anomaly detection — no labels needed. Trained only on normal pump behaviour; flags readings that deviate from the baseline.",
+  lstm_autoencoder: "LSTM Autoencoder (Thant) — unsupervised deep learning. Learns normal sensor patterns then flags windows with high reconstruction error. No labels needed.",
+  transformer:      "Transformer Autoencoder (Zeyang) — unsupervised deep learning. Uses self-attention over 60-timestep windows to learn normal behaviour; high reconstruction error flags anomalies. No labels needed.",
+  adapted_lstm:     "Adapted LSTM / ALSS-SVDD (Julie) — semi-supervised deep SVDD. LSTM encoder learns a centre for normal behaviour; anomalies are windows far from that centre. Trained on labelled valve1 data.",
 };
 function updateHint() { modelHint.textContent = MODEL_HINTS[modelSelect.value] || ""; }
 modelSelect.addEventListener("change", updateHint);
@@ -186,6 +190,13 @@ function renderSummaryCards(data, container) {
     </div></div>`;
 }
 
+const METRIC_EXPLAIN = {
+  f1:        "Overall balance between catching faults and avoiding false alarms",
+  precision: "Of every fault flagged, how many were actually real faults",
+  recall:    "Of every real fault, how many did the model catch",
+  roc_auc:   "How well the model separates normal readings from faulty ones (higher = better)",
+};
+
 function renderMetricCards(metrics, container, chartId) {
   const items = [
     { key: "f1",        label: "F1 Score"  },
@@ -200,6 +211,7 @@ function renderMetricCards(metrics, container, chartId) {
     return `<div class="col-6 col-md-3"><div class="metric-card">
       <div class="metric-name">${label}</div>
       <div class="metric-value ${cls}">${(val * 100).toFixed(1)}%</div>
+      <div class="metric-explain">${METRIC_EXPLAIN[key]}</div>
     </div></div>`;
   }).join("");
 
@@ -275,17 +287,37 @@ function renderTimeline(timeline, canvasId) {
 function renderConfusion(cm, container) {
   const [[tn, fp], [fn, tp]] = cm;
   const total = tn + fp + fn + tp;
-  const pct = v => `<small>${((v / total) * 100).toFixed(1)}%</small>`;
+  const pct = v => `${((v / total) * 100).toFixed(1)}%`;
   container.innerHTML = `
     <div></div>
-    <div class="cm-header">Predicted: Normal</div>
-    <div class="cm-header">Predicted: Anomaly</div>
-    <div class="cm-header" style="writing-mode:vertical-lr;transform:rotate(180deg)">Actual: Normal</div>
-    <div class="cm-cell cm-tn">${tn.toLocaleString()}${pct(tn)}<small style="color:#166534">✓ True Negative</small></div>
-    <div class="cm-cell cm-fp">${fp.toLocaleString()}${pct(fp)}<small style="color:#b91c1c">✗ False Positive</small></div>
-    <div class="cm-header" style="writing-mode:vertical-lr;transform:rotate(180deg)">Actual: Anomaly</div>
-    <div class="cm-cell cm-fn">${fn.toLocaleString()}${pct(fn)}<small style="color:#c2410c">✗ Missed</small></div>
-    <div class="cm-cell cm-tp">${tp.toLocaleString()}${pct(tp)}<small style="color:#1e40af">✓ True Positive</small></div>`;
+    <div class="cm-header">Model said: Normal</div>
+    <div class="cm-header">Model said: Fault</div>
+    <div class="cm-header" style="writing-mode:vertical-lr;transform:rotate(180deg)">Was: Normal</div>
+    <div class="cm-cell cm-tn">
+      <div class="cm-count">${tn.toLocaleString()}</div>
+      <div class="cm-pct">${pct(tn)}</div>
+      <div class="cm-tag cm-tag-tn">✓ Correct — no fault</div>
+      <div class="cm-desc">Normal reading, correctly left alone</div>
+    </div>
+    <div class="cm-cell cm-fp">
+      <div class="cm-count">${fp.toLocaleString()}</div>
+      <div class="cm-pct">${pct(fp)}</div>
+      <div class="cm-tag cm-tag-fp">⚠ False alarm</div>
+      <div class="cm-desc">Normal reading, incorrectly flagged as fault</div>
+    </div>
+    <div class="cm-header" style="writing-mode:vertical-lr;transform:rotate(180deg)">Was: Fault</div>
+    <div class="cm-cell cm-fn">
+      <div class="cm-count">${fn.toLocaleString()}</div>
+      <div class="cm-pct">${pct(fn)}</div>
+      <div class="cm-tag cm-tag-fn">✗ Missed fault</div>
+      <div class="cm-desc">Real fault that the model failed to catch</div>
+    </div>
+    <div class="cm-cell cm-tp">
+      <div class="cm-count">${tp.toLocaleString()}</div>
+      <div class="cm-pct">${pct(tp)}</div>
+      <div class="cm-tag cm-tag-tp">✓ Caught fault</div>
+      <div class="cm-desc">Real fault, correctly detected</div>
+    </div>`;
 }
 
 // ── ZIP-specific rendering ────────────────────────────────────────────────────
@@ -334,6 +366,8 @@ function renderPerFileTable(perFile) {
 
 function renderZipBanner(data) {
   zipBanner.className = "risk-banner mb-4";
+  document.querySelector("#zipBanner .risk-label").textContent =
+    data.n_folds > 0 ? "Dataset Evaluation (Group K-Fold)" : "Dataset Evaluation (Isolation Forest)";
   const f1 = data.overall.f1;
   if (f1 >= 0.75) {
     zipBanner.classList.add("low");
@@ -431,12 +465,21 @@ runBtn.addEventListener("click", async () => {
         <div class="summary-value text-danger">${data.anomaly_count.toLocaleString()}</div>
       </div></div>
       <div class="col-6 col-md-3"><div class="summary-card">
-        <span class="summary-label">K-Fold Splits</span>
-        <div class="summary-value">${data.n_folds}</div>
+        <span class="summary-label">${data.n_folds > 0 ? "K-Fold Splits" : "Method"}</span>
+        <div class="summary-value">${data.n_folds > 0 ? data.n_folds : "Unsupervised"}</div>
       </div></div>`;
 
     renderMetricCards(data.overall, zipMetricCards, "zipMetricsChart");
-    renderFoldChart(data.fold_f1s);
+
+    // Fold chart — hide for Isolation Forest (no cross-validation folds)
+    const foldSection = document.querySelector("#zipResults .mb-4:has(#foldChart)");
+    if (data.fold_f1s && data.fold_f1s.length > 0) {
+      renderFoldChart(data.fold_f1s);
+      if (foldSection) foldSection.style.display = "";
+    } else {
+      if (foldSection) foldSection.style.display = "none";
+    }
+
     renderTimeline(data.timeline, "zipTimelineChart");
     renderPerFileTable(data.per_file);
     renderConfusion(data.confusion, zipConfusionMatrix);
