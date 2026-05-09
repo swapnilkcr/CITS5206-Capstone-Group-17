@@ -717,18 +717,16 @@ def adapted_lstm_predict(df_raw: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
             scores.extend(s.numpy())
     scores = np.array(scores)
 
-    s_min, s_max = scores.min(), scores.max()
-    probas_win   = (scores - s_min) / (s_max - s_min + 1e-9)
-    preds_win    = (scores > _alstm_threshold).astype(int)
+    # Spread each window's score to ALL rows it covers (max pooling across overlaps)
+    row_scores = np.zeros(n_rows)
+    for i, s in enumerate(scores):
+        start = i * ALSTM_STRIDE
+        end   = min(start + ALSTM_WINDOW, n_rows)
+        row_scores[start:end] = np.maximum(row_scores[start:end], s)
 
-    # Map each window prediction to its last timestep row
-    full_preds  = np.zeros(n_rows, dtype=int)
-    full_probas = np.zeros(n_rows)
-    for i, p in enumerate(preds_win):
-        row_idx = i * ALSTM_STRIDE + ALSTM_WINDOW - 1
-        if row_idx < n_rows:
-            full_preds[row_idx]  = p
-            full_probas[row_idx] = probas_win[i]
+    s_min, s_max = row_scores.min(), row_scores.max()
+    full_probas  = (row_scores - s_min) / (s_max - s_min + 1e-9)
+    full_preds   = (row_scores > _alstm_threshold).astype(int)
 
     return full_preds, full_probas
 
