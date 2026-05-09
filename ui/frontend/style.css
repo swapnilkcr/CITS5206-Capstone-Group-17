@@ -374,6 +374,78 @@ body {
 .f1-medium { background: #fff7ed; color: #c2410c; }
 .f1-low    { background: #fee2e2; color: #b91c1c; }
 
+/* ── Real-world deployment notice ──────────────────────── */
+.deploy-notice {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 14px;
+  padding: 14px 18px;
+  font-size: .88rem;
+  color: #1e3a8a;
+}
+.deploy-icon { font-size: 1.4rem; flex-shrink: 0; margin-top: 1px; }
+.deploy-notice a { color: #2563eb; }
+
+/* ── Algorithm type badge ──────────────────────────────── */
+.algo-badge {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: .83rem;
+  font-weight: 600;
+}
+.badge-supervised    { background: #dbeafe; color: #1e40af; }
+.badge-unsupervised  { background: #dcfce7; color: #166534; }
+.badge-semisupervised { background: #fef9c3; color: #854d0e; }
+
+/* ── Dataset preview panel ─────────────────────────────── */
+.preview-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  background: #f1f5f9;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 14px;
+  font-size: .87rem;
+  font-weight: 600;
+  user-select: none;
+}
+.preview-header:hover { background: #e2e8f0; }
+.preview-meta {
+  font-size: .78rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+.preview-body {
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  padding: 12px;
+  background: #fafcff;
+}
+.preview-table-wrap { max-height: 220px; overflow: auto; }
+.preview-table { font-size: .76rem; }
+.preview-table th { white-space: nowrap; position: sticky; top: 0; background: #f8fafc; z-index: 1; }
+.preview-info { font-size: .82rem; }
+th.col-feature { background: #eff6ff !important; color: #1e40af; }
+th.col-label   { background: #fef9c3 !important; color: #854d0e; }
+th.col-meta    { background: #f1f5f9 !important; color: var(--muted); }
+
+/* ── Recommendation box ────────────────────────────────── */
+.recommend-box {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 9px;
+  padding: 10px 13px;
+  font-size: .82rem;
+  color: #92400e;
+}
+
 /* ── Responsive ────────────────────────────────────────── */
 @media (max-width: 991px) {
   .hero-title { font-size: 1.4rem; }

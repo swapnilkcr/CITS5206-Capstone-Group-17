@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Model Documentation — Pump Failure Detection</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    :root {
+      --navy:    #0f172a;
+      --navy2:   #1e293b;
+      --blue:    #2563eb;
+      --blue-dk: #1d4ed8;
+      --bg:      #f1f5f9;
+      --border:  #e2e8f0;
+      --muted:   #64748b;
+      --text:    #1e293b;
+      --success: #16a34a;
+      --warning: #d97706;
+      --danger:  #dc2626;
+    }
+    body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; }
+
+    /* Navbar */
+    .app-navbar { background: linear-gradient(90deg,var(--navy),var(--navy2)); padding: 14px 0; box-shadow: 0 2px 12px rgba(0,0,0,.15); }
+    .app-navbar .navbar-brand { color:#fff; font-size:1.1rem; }
+
+    /* Hero */
+    .docs-hero { background: linear-gradient(135deg,var(--navy),var(--blue-dk)); border-radius:24px; padding:36px; color:#fff; margin-bottom:2rem; }
+    .docs-hero h1 { font-size:1.8rem; font-weight:800; }
+    .docs-hero p  { color:rgba(255,255,255,.82); max-width:620px; }
+
+    /* Section */
+    .section-title { font-size:1.25rem; font-weight:800; border-bottom:2px solid var(--border); padding-bottom:8px; margin-bottom:1.2rem; margin-top:2.5rem; }
+
+    /* Algorithm cards */
+    .algo-card { background:#fff; border-radius:18px; box-shadow:0 4px 20px rgba(15,23,42,.07); padding:28px; margin-bottom:1.2rem; border-left:5px solid var(--blue); }
+    .algo-card.supervised    { border-left-color:#2563eb; }
+    .algo-card.unsupervised  { border-left-color:#16a34a; }
+    .algo-card.semisupervised { border-left-color:#d97706; }
+    .algo-title { font-size:1.1rem; font-weight:800; margin-bottom:4px; }
+    .algo-subtitle { font-size:.85rem; color:var(--muted); margin-bottom:14px; }
+
+    .type-badge {
+      display:inline-block; padding:3px 12px; border-radius:999px;
+      font-size:.75rem; font-weight:700; margin-bottom:10px;
+    }
+    .type-supervised    { background:#dbeafe; color:#1e40af; }
+    .type-unsupervised  { background:#dcfce7; color:#166534; }
+    .type-semisupervised { background:#fef9c3; color:#854d0e; }
+
+    /* Steps */
+    .steps-ol { list-style:none; padding:0; margin:0; counter-reset:step; }
+    .steps-ol li {
+      counter-increment:step;
+      display:flex; gap:14px; align-items:flex-start;
+      margin-bottom:10px; font-size:.9rem;
+    }
+    .steps-ol li::before {
+      content:counter(step);
+      flex-shrink:0;
+      width:24px; height:24px;
+      background:var(--blue); color:#fff;
+      border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      font-size:.75rem; font-weight:800;
+    }
+    .step-content { flex:1; }
+    .step-content strong { display:block; margin-bottom:2px; }
+    .step-content .detail { color:var(--muted); font-size:.83rem; }
+
+    /* Spec table */
+    .spec-table { font-size:.85rem; }
+    .spec-table td:first-child { font-weight:600; color:var(--muted); width:180px; }
+    .spec-table td { padding:4px 8px; vertical-align:top; }
+
+    /* Test files table */
+    .files-card { background:#fff; border-radius:18px; box-shadow:0 4px 20px rgba(15,23,42,.07); padding:28px; margin-bottom:1.2rem; }
+    .file-row { display:flex; gap:12px; align-items:flex-start; padding:14px 0; border-bottom:1px solid var(--border); }
+    .file-row:last-child { border-bottom:none; }
+    .file-icon { font-size:1.4rem; flex-shrink:0; }
+    .file-path { font-family:monospace; font-size:.82rem; background:#f1f5f9; border-radius:6px; padding:3px 8px; display:inline-block; margin-bottom:4px; }
+    .file-desc { font-size:.86rem; color:var(--text); }
+    .file-meta { font-size:.78rem; color:var(--muted); margin-top:3px; }
+
+    /* Comparison table */
+    .cmp-table th { background:var(--navy); color:#fff; font-size:.82rem; }
+    .cmp-table td { font-size:.84rem; vertical-align:middle; }
+    .cmp-table td:first-child { font-weight:700; }
+    .cmp-table .badge { font-size:.72rem; }
+
+    /* Deploy callout */
+    .deploy-callout { background:#eff6ff; border:1px solid #bfdbfe; border-radius:14px; padding:20px 22px; color:#1e3a8a; }
+    .deploy-callout h6 { font-weight:800; margin-bottom:8px; }
+    .deploy-callout ul { margin:0; padding-left:1.2rem; font-size:.9rem; }
+
+    /* Workflow steps */
+    .workflow-step { display:flex; gap:16px; align-items:flex-start; margin-bottom:16px; }
+    .wf-num { width:36px; height:36px; background:var(--blue); color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:.95rem; flex-shrink:0; }
+    .wf-content strong { display:block; font-size:.97rem; margin-bottom:2px; }
+    .wf-content p { font-size:.85rem; color:var(--muted); margin:0; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar app-navbar">
+  <div class="container d-flex align-items-center justify-content-between">
+    <a href="index.html" class="navbar-brand fw-bold">🔧 Pump Failure Detection</a>
+    <a href="index.html" class="btn btn-sm btn-outline-light">← Back to App</a>
+  </div>
+</nav>
+
+<main class="container py-4 py-lg-5">
+
+  <!-- Hero -->
+  <div class="docs-hero">
+    <h1 class="mb-3">📖 Model Documentation</h1>
+    <p>
+      Complete reference for all six anomaly detection algorithms in this system —
+      how each one trains, how it makes predictions, its strengths and limitations,
+      and exactly which files to upload when testing in the UI.
+    </p>
+    <div class="d-flex gap-2 flex-wrap mt-3">
+      <span class="badge bg-primary">6 Algorithms</span>
+      <span class="badge bg-success">SKAB Dataset</span>
+      <span class="badge bg-warning text-dark">8 Sensor Channels</span>
+      <span class="badge bg-info text-dark">LOGO · K-Fold Evaluation</span>
+    </div>
+  </div>
+
+  <!-- Dataset overview -->
+  <div class="section-title">📂 Dataset Overview</div>
+  <div class="files-card">
+    <p class="mb-3" style="font-size:.9rem;">
+      All models are trained and evaluated on the <strong>SKAB (Skoltech Anomaly Benchmark)</strong> dataset —
+      sensor readings from a water pump testbed. The dataset has 8 sensor channels sampled at fixed intervals.
+    </p>
+    <table class="spec-table w-100">
+      <tr><td>Sensor columns</td><td>Accelerometer1RMS, Accelerometer2RMS, Current, Pressure, Temperature, Thermocouple, Voltage, Volume Flow RateRMS</td></tr>
+      <tr><td>Label column</td><td><code>anomaly</code> — 0 = normal, 1 = anomalous</td></tr>
+      <tr><td>Separator</td><td>Semicolon (<code>;</code>)</td></tr>
+      <tr><td>Total files</td><td>35 labelled CSVs across <code>data/valve1/</code>, <code>data/valve2/</code>, <code>data/other/</code></td></tr>
+      <tr><td>Anomaly-free baseline</td><td><code>data/anomaly-free/anomaly-free.csv</code> — used to train unsupervised models</td></tr>
+    </table>
+  </div>
+
+  <!-- ─────────────────────────── SUPERVISED ─────────────────────────────── -->
+  <div class="section-title">🎯 Supervised Models</div>
+  <p class="text-muted small mb-3">Require labeled training data (anomaly column must be present). Trained per-upload using Leave-One-Out on all 35 SKAB files.</p>
+
+  <!-- XGBoost -->
+  <div class="algo-card supervised">
+    <div><span class="type-badge type-supervised">🎯 Supervised</span></div>
+    <div class="algo-title">XGBoost</div>
+    <div class="algo-subtitle">Gradient-boosted decision trees · sklearn · 150 estimators</div>
+    <div class="row g-4">
+      <div class="col-md-7">
+        <strong class="d-block mb-2" style="font-size:.85rem;color:var(--muted);">TRAINING STEPS</strong>
+        <ol class="steps-ol">
+          <li>
+            <div class="step-content">
+              <strong>Feature engineering</strong>
+              <span class="detail">Add rolling mean (window=5) and rolling std (window=5) for each of the 8 sensor channels → 24 total features. Apply StandardScaler.</span>
+            </div>
+          </li>
+          <li>
+            <div class="step-content">
+              <strong>LOGO split</strong>
+              <span class="detail">When you upload a file, it is identified by MD5 hash. The model trains on the remaining 34 SKAB files and tests on your file only.</span>
+            </div>
+          </li>
+          <li>
+            <div class="step-content">
+              <strong>Class imbalance handling</strong>
+              <span class="detail">Computes <code>scale_pos_weight = n_normal / n_anomaly</code> to prevent bias toward the majority class.</span>
+            </div>
+          </li>
+          <li>
+            <div class="step-content">
+              <strong>Fit &amp; predict</strong>
+              <span class="detail">Trains 150 trees (max_depth=6). Prediction threshold = 0.5 on <code>predict_proba()</code>.</span>
+            </div>
+          </li>
+        </ol>
+      </div>
+      <div class="col-md-5">
+        <strong class="d-block mb-2" style="font-size:.85rem;color:var(--muted);">SPECS</strong>
+        <table class="spec-table w-100">
+          <tr><td>Estimators</td><td>150 trees</td></tr>
+          <tr><td>Max depth</td><td>6</td></tr>
+          <tr><td>Features</td><td>24 (8 raw + 8 roll_mean + 8 roll_std)</td></tr>
+          <tr><td>Threshold</td><td>0.5 probability</td></tr>
+          <tr><td>Evaluation</td><td>LOGO (single file) · Group K-Fold (ZIP)</td></tr>
+        </table>
+        <div class="mt-3 p-2 rounded" style="background:#f0fdf4;font-size:.8rem;color:#166534;">
+          ✅ Best performer on in-distribution data. F1 ≈ 1.0 on familiar SKAB files.
+        </div>
+        <div class="mt-2 p-2 rounded" style="background:#fff7ed;font-size:.8rem;color:#c2410c;">
+          ⚠ Can overfit to training distribution. Needs labeled data at test time.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Random Forest -->
+  <div class="algo-card supervised">
+    <div><span class="type-badge type-supervised">🎯 Supervised</span></div>
+    <div class="algo-title">Random Forest</div>
+    <div class="algo-subtitle">Ensemble of decision trees · sklearn · 150 estimators · balanced class weight</div>
+    <div class="row g-4">
+      <div class="col-md-7">
+        <strong class="d-block mb-2" style="font-size:.85rem;color:var(--muted);">TRAINING STEPS</strong>
+        <ol class="steps-ol">
+          <li><div class="step-content"><strong>Feature engineering</strong><span class="detail">Same 24 features + StandardScaler as XGBoost.</span></div></li>
+          <li><div class="step-content"><strong>LOGO split</strong><span class="detail">Same Leave-One-Out procedure — trains on 34 files, tests on yours.</span></div></li>
+          <li><div class="step-content"><strong>Class imbalance handling</strong><span class="detail">Uses <code>class_weight="balanced"</code> — automatically adjusts sample weights per class.</span></div></li>
+          <li><div class="step-content"><strong>Fit &amp; predict</strong><span class="detail">150 trees with bootstrap sampling. Aggregates votes across all trees. Threshold = 0.5.</span></div></li>
+        </ol>
+      </div>
+      <div class="col-md-5">
+        <strong class="d-block mb-2" style="font-size:.85rem;color:var(--muted);">SPECS</strong>
+        <table class="spec-table w-100">
+          <tr><td>Estimators</td><td>150 trees</td></tr>
+          <tr><td>Class weight</td><td>balanced</td></tr>
+          <tr><td>Features</td><td>24</td></tr>
+          <tr><td>Threshold</td><td>0.5 probability</td></tr>
+        </table>
+        <div class="mt-3 p-2 rounded" style="background:#f0fdf4;font-size:.8rem;color:#166534;">
+          ✅ More stable than XGBoost across different file distributions.
+        </div>
+        <div class="mt-2 p-2 rounded" style="background:#fff7ed;font-size:.8rem;color:#c2410c;">
+          ⚠ Slightly lower recall — misses more faults but fewer false alarms.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────── UNSUPERVISED ───────────────────────────── -->
+  <div class="section-title">🔍 Unsupervised Models</div>
+  <p class="text-muted small mb-3">Trained only on normal (anomaly-free) data. No labels needed at test time — models learn what normal looks like and flag deviations.</p>
+
+  <!-- Isolation Forest -->
+  <div class="algo-card unsupervised">
+    <div><span class="type-badge type-unsupervised">🔍 Unsupervised</span></div>
+    <div class="algo-title">Isolation Forest</div>
+    <div class="algo-subtitle">Random partitioning trees · trained once at startup on anomaly-free baseline</div>
+    <div class="row g-4">
+      <div class="col-md-7">
+        <strong class="d-block mb-2" style="font-size:.85rem;color:var(--muted);">TRAINING STEPS</strong>
+        <ol class="steps-ol">
+          <li><div class="step-content"><strong>Load anomaly-free baseline</strong><span class="detail">Reads <code>data/anomaly-free/anomaly-free.csv</code> — zero anomaly rows, ever.</span></div></li>
+          <li><div class="step-content"><strong>Feature engineering</strong><span class="detail">Adds rolling features → 24 features. StandardScaler fitted on baseline.</span></div></li>
+          <li><div class="step-content"><strong>Fit Isolation Forest</strong><span class="detail">300 trees, contamination=0.01. Anomalous points are isolated faster (fewer random splits needed).</span></div></li>
+          <li><div class="step-content"><strong>Compute threshold</strong><span class="detail">Scores all baseline rows: <code>score = –decision_function(X)</code>. Threshold = 99th percentile of those baseline scores.</span></div></li>
+          <li><div class="step-content"><strong>Predict on new file</strong><span class="detail">Score each row. Row is anomalous if score &gt; threshold.</span></div></li>
+        </ol>
+      </div>
+      <div class="col-md-5">
+        <strong class="d-block mb-2" style="font-size:.85rem;color:var(--muted);">SPECS</strong>
+        <table class="spec-table w-100">
+          <tr><td>Trees</td><td>300</td></tr>
+          <tr><td>Contamination</td><td>0.01 (1%)</td></tr>
+          <tr><td>Features</td><td>24</td></tr>
+          <tr><td>Threshold</td><td>99th pct of baseline scores</td></tr>
+          <tr><td>Training data</td><td>Anomaly-free baseline only</td></tr>
+          <tr><td>Trained</td><td>Once at startup, cached</td></tr>
+        </table>
+        <div class="mt-3 p-2 rounded" style="background:#f0fdf4;font-size:.8rem;color:#166534;">
+          ✅ No labels needed. Works on any file including unlabeled production data.
+        </div>
+        <div class="mt-2 p-2 rounded" style="background:#fff7ed;font-size:.8rem;color:#c2410c;">
+          ⚠ F1 ≈ 0.52 on SKAB. Cannot be fine-tuned with labeled data.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LSTM Autoencoder -->
+  <div class="algo-card unsupervised">
+    <div><span class="type-badge type-unsupervised">🔍 Unsupervised</span></div>
+    <div class="algo-title">LSTM Autoencoder</div>
+    <div class="algo-subtitle">PyTorch · by Thant · 2-layer LSTM encoder-decoder · seq_len=30 · latent_dim=16</div>
+    <div class="row g-4">
+      <div class="col-md-7">
+        <strong class="d-block mb-2" style="font-size:.85rem;color:var(--muted);">ARCHITECTURE</strong>
+        <div style="font-family:monospace;font-size:.78rem;background:#f8fafc;border-radius:8px;padding:10px 14px;margin-bottom:14px;line-height:1.8;">
+          Input (30 timesteps × 24 features)<br>
+          → LSTM(24→64) → LSTM(64→16)  <span style="color:var(--muted)">[encoder]</span><br>
+          → LSTM(16→16) → LSTM(16→64)  <span style="color:var(--muted)">[decoder]</span><br>
+          → Linear(64→24)               <span style="color:var(--muted)">[reconstruct]</span>
+        </div>
+        <strong class="d-block mb-2" style="font-size:.85rem;color:var(--muted);">TRAINING STEPS</strong>
+        <ol class="steps-ol">
+          <li><div class="step-content"><strong>Slice into windows</strong><span class="detail">Anomaly-free baseline sliced into 30-row overlapping sequences.</span></div></li>
+          <li><div class="step-content"><strong>80/20 train/val split</strong><span class="detail">Train up to 30 epochs, early stop (patience=5) on validation MSE.</span></div></li>
+          <li><div class="step-content"><strong>Compute threshold</strong><span class="detail">Reconstruction error (MSE) on all baseline windows. Threshold = 95th percentile.</span></div></li>
+          <li><div class="step-content"><strong>Predict</strong><span class="detail">Slide window across uploaded file. Window error &gt; threshold → anomaly. Prediction assigned to the last row of each window.</span></div></li>
+        </ol>
+      </div>
+      <div class="col-md-5">
+        <strong class="d-block mb-2" style="font-size:.85rem;color:var(--muted);">SPECS</strong>
+        <table class="spec-table w-100">
+          <tr><td>Window size</td><td>30 timesteps</td></tr>
+          <tr><td>Latent dim</td><td>16</td></tr>
+          <tr><td>Optimizer</td><td>Adam, lr=1e-3</td></tr>
+          <tr><td>Loss</td><td>MSE (reconstruction)</td></tr>
+          <tr><td>Threshold</td><td>95th pct of baseline errors</td></tr>
+          <tr><td>Features</td><td>24 (with rolling)</td></tr>
+          <tr><td>Trained</td><td>Once at startup, cached</td></tr>
+        </table>
+        <div class="mt-3 p-2 rounded" style="background:#f0fdf4;font-size:.8rem;color:#166534;">
+          ✅ No labels needed. Good recall — catches most real faults.
+        </div>
+        <div class="mt-2 p-2 rounded" style="background:#fff7ed;font-size:.8rem;color:#c2410c;">
+          ⚠ F1 ≈ 0.52–0.55. High recall but moderate precision (some false alarms).
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Transformer AE -->
+  <div class="algo-card unsupervised">
+    <div><span class="type-badge type-unsupervised">🔍 Unsupervised</span></div>
+    <div class="algo-title">Transformer Autoencoder</div>
+    <div class="algo-subtitle">PyTorch · by Zeyang · self-attention encoder-decoder · seq_len=30 · d_model=32</div>
+    <div class="row g-4">
+      <div class="col-md-7">
+        <strong class="d-block mb-2" style="font-size:.85rem;color:var(--muted);">ARCHITECTURE</strong>
+        <div style="font-family:monospace;font-size:.78rem;background:#f8fafc;border-radius:8px;padding:10px 14px;margin-bottom:14px;line-height:1.8;">
+          Input (30 timesteps × 8 features)<br>
+          → Linear(8→32) + Positional Encoding<br>
+          → TransformerEncoder(d=32, heads=2, layers=1, ffn=64)<br>
+          → Linear(32→8)  <span style="color:var(--muted)">[reconstruct]</span>
+        </div>
+        <strong class="d-block mb-2" style="font-size:.85rem;color:var(--muted);">TRAINING STEPS</strong>
+        <ol class="steps-ol">
+          <li><div class="step-content"><strong>Own scaler</strong><span class="detail">Uses raw 8 features only (no rolling) with a dedicated StandardScaler.</span></div></li>
+          <li><div class="step-content"><strong>Slice &amp; train</strong><span class="detail">30-row windows on anomaly-free baseline. Up to 50 epochs, early stop (patience=5).</span></div></li>
+          <li><div class="step-content"><strong>Threshold</strong><span class="detail">95th percentile of reconstruction MSE on baseline windows.</span></div></li>
+          <li><div class="step-content"><strong>Predict</strong><span class="detail">Sliding window — self-attention processes all 30 timesteps simultaneously (non-sequential). High reconstruction error → anomaly.</span></div></li>
+        </ol>
+      </div>
+      <div class="col-md-5">
+        <strong class="d-block mb-2" style="font-size:.85rem;color:var(--muted);">SPECS</strong>
+        <table class="spec-table w-100">
+          <tr><td>Window size</td><td>30 timesteps</td></tr>
+          <tr><td>d_model</td><td>32</td></tr>
+          <tr><td>Attention heads</td><td>2</td></tr>
+          <tr><td>FFN dim</td><td>64</td></tr>
+          <tr><td>Features</td><td>8 raw only (own scaler)</td></tr>
+          <tr><td>Threshold</td><td>95th pct of baseline errors</td></tr>
+          <tr><td>Trained</td><td>Once at startup, cached</td></tr>
+        </table>
+        <div class="mt-3 p-2 rounded" style="background:#eff6ff;font-size:.8rem;color:#1e40af;">
+          ℹ Captures long-range temporal dependencies within each 30-step window via self-attention, unlike LSTM's sequential processing.
+        </div>
+        <div class="mt-2 p-2 rounded" style="background:#fff7ed;font-size:.8rem;color:#c2410c;">
+          ⚠ Same F1 ≈ 0.52–0.55 as LSTM AE — performance is similar on SKAB.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────── SEMI-SUPERVISED ───────────────────────── -->
+  <div class="section-title">⚡ Semi-supervised Models</div>
+  <p class="text-muted small mb-3">Trained with labels, but no labels needed at test time. The best of both worlds — label signal guides training, but prediction is purely distance-based.</p>
+
+  <!-- Adapted LSTM -->
+  <div class="algo-card semisupervised">
+    <div><span class="type-badge type-semisupervised">⚡ Semi-supervised</span></div>
+    <div class="algo-title">Adapted LSTM · ALSS-SVDD</div>
+    <div class="algo-subtitle">PyTorch · by Julie · LSTM encoder + Deep SVDD · window=100 · hidden=64 · latent=32</div>
+    <div class="row g-4">
+      <div class="col-md-7">
+        <strong class="d-block mb-2" style="font-size:.85rem;color:var(--muted);">ARCHITECTURE</strong>
+        <div style="font-family:monospace;font-size:.78rem;background:#f8fafc;border-radius:8px;padding:10px 14px;margin-bottom:14px;line-height:1.8;">
+          Input (100 timesteps × 8 features)<br>
+          → LSTM(8→64)<br>
+          → Linear(64→32)  <span style="color:var(--muted)">[latent space]</span><br>
+          <br>
+          <span style="color:var(--muted)">No decoder — SVDD distance is the anomaly score.</span>
+        </div>
+        <strong class="d-block mb-2" style="font-size:.85rem;color:var(--muted);">TRAINING STEPS</strong>
+        <ol class="steps-ol">
+          <li><div class="step-content"><strong>Load valve1 train split</strong><span class="detail">Julie's <code>valve1_train.csv</code> (~12,713 rows, labeled normal + anomaly).</span></div></li>
+          <li><div class="step-content"><strong>Slide windows</strong><span class="detail">100-row windows, stride=10. Each window labeled 1 if any row in it is anomalous.</span></div></li>
+          <li><div class="step-content"><strong>Init SVDD center</strong><span class="detail">Mean embedding of all <em>normal</em> training windows in latent space.</span></div></li>
+          <li>
+            <div class="step-content"><strong>Train with 3 losses</strong>
+              <span class="detail">
+                <b>L1 (SVDD):</b> Pull normal windows toward center.<br>
+                <b>L2 (Margin):</b> Push anomaly windows away from center (margin=2.0).<br>
+                <b>L3 (Contrastive):</b> Same-class windows similar, cross-class dissimilar (temp=0.2).<br>
+                Total = L1 + L2 + 0.5×L3.
+              </span>
+            </div>
+          </li>
+          <li><div class="step-content"><strong>Threshold from val set</strong><span class="detail">After each epoch: score <code>valve1_val.csv</code> windows. Threshold = 95th percentile of <em>normal</em> window distances. Keep epoch with best val F1 (early stop patience=5).</span></div></li>
+          <li><div class="step-content"><strong>Predict (max-pooling)</strong><span class="detail">Slide window over test file. Each window's SVDD distance (distance² to center) is spread to all rows it covers via max-pooling. Row anomalous if its max score &gt; threshold.</span></div></li>
+        </ol>
+      </div>
+      <div class="col-md-5">
+        <strong class="d-block mb-2" style="font-size:.85rem;color:var(--muted);">SPECS</strong>
+        <table class="spec-table w-100">
+          <tr><td>Window size</td><td>100 timesteps</td></tr>
+          <tr><td>Stride</td><td>10</td></tr>
+          <tr><td>Hidden dim</td><td>64</td></tr>
+          <tr><td>Latent dim</td><td>32</td></tr>
+          <tr><td>Optimizer</td><td>Adam, lr=1e-3</td></tr>
+          <tr><td>Max epochs</td><td>20</td></tr>
+          <tr><td>SVDD margin</td><td>2.0</td></tr>
+          <tr><td>Threshold</td><td>95th pct of normal val window distances</td></tr>
+          <tr><td>Training data</td><td>valve1_train.csv + valve1_val.csv (labeled)</td></tr>
+          <tr><td>Trained</td><td>Once at startup, cached</td></tr>
+        </table>
+        <div class="mt-3 p-2 rounded" style="background:#f0fdf4;font-size:.8rem;color:#166534;">
+          ✅ Best overall — F1 = 0.894 on valve1 test, matching Julie's reported 0.873–0.895.
+        </div>
+        <div class="mt-2 p-2 rounded" style="background:#fff7ed;font-size:.8rem;color:#c2410c;">
+          ⚠ Threshold calibrated on valve1. Performance on valve2 (different sensor dynamics) is lower.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────── WHICH FILES TO UPLOAD ─────────────────── -->
+  <div class="section-title">📁 Which Files to Upload for Testing</div>
+  <div class="files-card">
+
+    <div class="file-row">
+      <div class="file-icon">🎯</div>
+      <div>
+        <div><strong>XGBoost &amp; Random Forest</strong></div>
+        <div class="file-path">data/valve1/1.csv</div>
+        <div class="file-path">data/valve2/1.csv</div>
+        <div class="file-desc">Any labeled SKAB file from <code>data/valve1/</code> or <code>data/valve2/</code>. Must have an <code>anomaly</code> column. The model trains LOGO-style on all other files and tests on yours.</div>
+        <div class="file-meta">Expected: F1 varies per file. On familiar data F1 ≈ 0.90–1.0. On harder files can drop to 0.10.</div>
+      </div>
+    </div>
+
+    <div class="file-row">
+      <div class="file-icon">🔍</div>
+      <div>
+        <div><strong>Isolation Forest</strong></div>
+        <div class="file-path">data/valve1/1.csv</div>
+        <div class="file-desc">Any SKAB file — with or without labels. If labels present, metrics will be shown. If no labels, only the anomaly timeline is shown.</div>
+        <div class="file-meta">Expected: F1 ≈ 0.52, Recall ≈ 1.0, Precision ≈ 0.35</div>
+      </div>
+    </div>
+
+    <div class="file-row">
+      <div class="file-icon">🧠</div>
+      <div>
+        <div><strong>LSTM Autoencoder &amp; Transformer AE</strong></div>
+        <div class="file-path">data/valve1/1.csv</div>
+        <div class="file-desc">Any SKAB file. Both models work identically to Isolation Forest — they just use reconstruction error instead of isolation score. Labels optional.</div>
+        <div class="file-meta">Expected: F1 ≈ 0.52–0.55, Recall ≈ 0.97, Precision ≈ 0.38</div>
+      </div>
+    </div>
+
+    <div class="file-row">
+      <div class="file-icon">⚡</div>
+      <div>
+        <div><strong>Adapted LSTM (ALSS-SVDD) — to match Julie's results</strong></div>
+        <div class="file-path">pre_trained_model/Adapted-LSTM/dataset/valve1_test.csv</div>
+        <div class="file-desc">This is Julie's official test split. Upload it to see results that directly match her published research numbers.</div>
+        <div class="file-meta">Expected: F1 ≈ 0.894, Precision ≈ 0.808, Recall ≈ 1.0, ROC-AUC ≈ 0.982 · Julie reported: F1 ≈ 0.873–0.895</div>
+      </div>
+    </div>
+
+    <div class="file-row">
+      <div class="file-icon">⚡</div>
+      <div>
+        <div><strong>Adapted LSTM — cross-dataset test</strong></div>
+        <div class="file-path">pre_trained_model/Adapted-LSTM/dataset/valve2_test.csv</div>
+        <div class="file-desc">Tests generalization to valve2 sensor dynamics. The model was trained on valve1, so this is a harder out-of-distribution test. F1 will be lower — expected behavior.</div>
+        <div class="file-meta">Expected: F1 ≈ 0.55–0.60 (lower due to cross-dataset threshold shift)</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ─────────────────────────── COMPARISON TABLE ──────────────────────── -->
+  <div class="section-title">📊 Model Comparison</div>
+  <div class="files-card p-0 overflow-hidden">
+    <table class="table cmp-table mb-0">
+      <thead>
+        <tr>
+          <th style="width:170px">Model</th>
+          <th>Type</th>
+          <th>Labels needed?</th>
+          <th>Window-based?</th>
+          <th>Training data</th>
+          <th>Anomaly signal</th>
+          <th>Best F1 (SKAB)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>XGBoost</td>
+          <td><span class="badge" style="background:#dbeafe;color:#1e40af">Supervised</span></td>
+          <td>Yes — always</td>
+          <td>No (row-level)</td>
+          <td>All 35 SKAB files</td>
+          <td>Class probability</td>
+          <td class="text-success fw-bold">≈ 1.0 (in-dist.)</td>
+        </tr>
+        <tr>
+          <td>Random Forest</td>
+          <td><span class="badge" style="background:#dbeafe;color:#1e40af">Supervised</span></td>
+          <td>Yes — always</td>
+          <td>No (row-level)</td>
+          <td>All 35 SKAB files</td>
+          <td>Class probability</td>
+          <td class="text-success fw-bold">≈ 1.0 (in-dist.)</td>
+        </tr>
+        <tr>
+          <td>Isolation Forest</td>
+          <td><span class="badge" style="background:#dcfce7;color:#166534">Unsupervised</span></td>
+          <td>No</td>
+          <td>No (row-level)</td>
+          <td>Anomaly-free only</td>
+          <td>Isolation score</td>
+          <td>≈ 0.52</td>
+        </tr>
+        <tr>
+          <td>LSTM Autoencoder</td>
+          <td><span class="badge" style="background:#dcfce7;color:#166534">Unsupervised</span></td>
+          <td>No</td>
+          <td>Yes (30 rows)</td>
+          <td>Anomaly-free only</td>
+          <td>Reconstruction error</td>
+          <td>≈ 0.52–0.55</td>
+        </tr>
+        <tr>
+          <td>Transformer AE</td>
+          <td><span class="badge" style="background:#dcfce7;color:#166534">Unsupervised</span></td>
+          <td>No</td>
+          <td>Yes (30 rows)</td>
+          <td>Anomaly-free only</td>
+          <td>Reconstruction error</td>
+          <td>≈ 0.52–0.55</td>
+        </tr>
+        <tr style="background:#fffbeb">
+          <td><strong>Adapted LSTM</strong></td>
+          <td><span class="badge" style="background:#fef9c3;color:#854d0e">Semi-supervised</span></td>
+          <td>At train time only</td>
+          <td>Yes (100 rows)</td>
+          <td>valve1 train+val (labeled)</td>
+          <td>SVDD distance</td>
+          <td class="fw-bold" style="color:#854d0e">≈ 0.894 (valve1 test)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ─────────────────────────── REAL-WORLD DEPLOYMENT ─────────────────── -->
+  <div class="section-title">🌐 Real-world Deployment Guidance</div>
+  <div class="deploy-callout mb-4">
+    <h6>⚠ Production data typically has no labels</h6>
+    <p style="font-size:.9rem;margin-bottom:12px;">
+      In real-world water pump monitoring, incoming sensor streams do not come with
+      <code>anomaly = 0/1</code> labels. This has direct implications for which models are safe to deploy.
+    </p>
+    <ul>
+      <li><strong>Do not use XGBoost or Random Forest in production</strong> — they require labeled data to be meaningful. Without labels you cannot evaluate or retrain them as conditions change.</li>
+      <li><strong>Use Isolation Forest, LSTM AE, or Transformer AE</strong> for fully automated deployment — no labels ever needed at inference time.</li>
+      <li><strong>Use Adapted LSTM</strong> when you have historical labeled fault data from the same pump type — re-train the SVDD encoder on your specific valve, then deploy label-free.</li>
+    </ul>
+  </div>
+
+  <div class="files-card">
+    <h6 class="fw-bold mb-3">Recommended workflow for a new pump installation</h6>
+    <div class="workflow-step">
+      <div class="wf-num">1</div>
+      <div class="wf-content">
+        <strong>Collect normal baseline data</strong>
+        <p>Run the pump normally for a period. Capture this as your anomaly-free reference.</p>
+      </div>
+    </div>
+    <div class="workflow-step">
+      <div class="wf-num">2</div>
+      <div class="wf-content">
+        <strong>Train unsupervised models</strong>
+        <p>Fine-tune Isolation Forest, LSTM AE, and Transformer AE on your normal baseline. Checkpoints are saved automatically.</p>
+      </div>
+    </div>
+    <div class="workflow-step">
+      <div class="wf-num">3</div>
+      <div class="wf-content">
+        <strong>Switch to inference mode</strong>
+        <p>Upload new incoming sensor CSVs without labels. The model scores each row and flags anomalies in real time.</p>
+      </div>
+    </div>
+    <div class="workflow-step">
+      <div class="wf-num">4</div>
+      <div class="wf-content">
+        <strong>Label fault events when they occur</strong>
+        <p>As faults are confirmed by engineers, label those windows. Accumulate enough labeled faults to fine-tune the Adapted LSTM for higher precision.</p>
+      </div>
+    </div>
+    <div class="workflow-step">
+      <div class="wf-num">5</div>
+      <div class="wf-content">
+        <strong>Retrain Adapted LSTM</strong>
+        <p>Re-run training with the new labeled fault data. The SVDD center and threshold update to your specific pump's dynamics.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-4 text-center">
+    <a href="index.html" class="btn btn-primary px-4 py-2">← Back to App</a>
+  </div>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

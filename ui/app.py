@@ -989,6 +989,33 @@ def health():
     return jsonify({"status": "ok", "skab_files": len(_skab_index)})
 
 
+@app.route("/api/preview", methods=["POST"])
+def preview():
+    if "file" not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+    raw_bytes = request.files["file"].read()
+    try:
+        df = parse_uploaded_csv(raw_bytes)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    has_labels  = "anomaly" in df.columns
+    feature_present = [c for c in FEATURE_COLS if c in df.columns]
+    preview_rows = df.head(20).copy()
+    for col in preview_rows.select_dtypes(include="datetime").columns:
+        preview_rows[col] = preview_rows[col].astype(str)
+
+    return jsonify({
+        "rows":           len(df),
+        "cols":           len(df.columns),
+        "columns":        df.columns.tolist(),
+        "has_labels":     has_labels,
+        "feature_cols":   feature_present,
+        "anomaly_rate":   round(float(df["anomaly"].mean()) * 100, 1) if has_labels else None,
+        "preview":        preview_rows.fillna("").to_dict(orient="records"),
+    })
+
+
 # ---------------------------------------------------------------------------
 # Single-file prediction (LOGO)
 # ---------------------------------------------------------------------------

@@ -11,9 +11,12 @@
 <body>
 
   <nav class="navbar app-navbar">
-    <div class="container">
+    <div class="container d-flex align-items-center justify-content-between">
       <span class="navbar-brand fw-bold">🔧 Pump Failure Detection</span>
-      <span class="navbar-text text-light small opacity-75">XGBoost &amp; Random Forest · SKAB Dataset</span>
+      <div class="d-flex align-items-center gap-3">
+        <span class="navbar-text text-light small opacity-75">XGBoost · RF · IF · LSTM AE · Transformer AE · Adapted LSTM</span>
+        <a href="docs.html" class="btn btn-sm btn-outline-light">📖 Docs</a>
+      </div>
     </div>
   </nav>
 
@@ -33,12 +36,25 @@
         <div class="col-lg-5">
           <div class="hero-stats">
             <div class="hero-stat-box"><span class="stat-label">Sensors</span><strong>8 Channels</strong></div>
-            <div class="hero-stat-box"><span class="stat-label">Models</span><strong>XGBoost · RF</strong></div>
+            <div class="hero-stat-box"><span class="stat-label">Models</span><strong>6 Algorithms</strong></div>
             <div class="hero-stat-box"><span class="stat-label">Evaluation</span><strong>LOGO · K-Fold</strong></div>
           </div>
         </div>
       </div>
     </section>
+
+    <!-- Real-world deployment notice -->
+    <div class="deploy-notice mb-4">
+      <div class="deploy-icon">🌐</div>
+      <div>
+        <strong>Real-world deployment note:</strong>
+        In production, incoming sensor data typically has <em>no anomaly labels</em>.
+        Supervised models (XGBoost, Random Forest) require labeled training data and may not generalise.
+        For unlabeled data, prefer <strong>Isolation Forest</strong>, <strong>LSTM Autoencoder</strong>,
+        <strong>Transformer AE</strong>, or <strong>Adapted LSTM</strong> — they learn from normal behaviour alone.
+        <a href="docs.html" class="ms-1">Learn more →</a>
+      </div>
+    </div>
 
     <div class="row g-4">
 
@@ -71,17 +87,46 @@
               <div id="fileChip" class="file-chip d-none"></div>
             </div>
 
+            <!-- Dataset preview -->
+            <div id="previewSection" class="d-none mb-3">
+              <div class="preview-header" onclick="togglePreview()">
+                <span id="previewToggleLabel">📋 Dataset Preview</span>
+                <span id="previewMeta" class="preview-meta"></span>
+                <span id="previewChevron" class="ms-auto">▼</span>
+              </div>
+              <div id="previewBody" class="preview-body d-none">
+                <div id="previewInfo" class="preview-info mb-2"></div>
+                <div id="previewRecommend" class="d-none mb-2"></div>
+                <div class="table-responsive preview-table-wrap">
+                  <table class="table table-sm preview-table mb-0">
+                    <thead id="previewThead"></thead>
+                    <tbody id="previewTbody"></tbody>
+                  </table>
+                </div>
+                <p class="text-muted small mt-1 mb-0">Showing first 20 rows</p>
+              </div>
+            </div>
+
             <!-- Model -->
             <label class="form-label fw-semibold mb-1">Algorithm</label>
             <select id="modelSelect" class="form-select custom-select mb-1">
-              <option value="xgboost">XGBoost</option>
-              <option value="random_forest">Random Forest</option>
-              <option value="isolation_forest">Isolation Forest</option>
-              <option value="lstm_autoencoder">LSTM Autoencoder</option>
-              <option value="transformer">Transformer Autoencoder</option>
-              <option value="adapted_lstm">Adapted LSTM (ALSS-SVDD)</option>
+              <optgroup label="🎯 Supervised (requires labeled data)">
+                <option value="xgboost">XGBoost</option>
+                <option value="random_forest">Random Forest</option>
+              </optgroup>
+              <optgroup label="🔍 Unsupervised (no labels needed)">
+                <option value="isolation_forest">Isolation Forest</option>
+                <option value="lstm_autoencoder">LSTM Autoencoder</option>
+                <option value="transformer">Transformer Autoencoder</option>
+              </optgroup>
+              <optgroup label="⚡ Semi-supervised (labels at train time only)">
+                <option value="adapted_lstm">Adapted LSTM (ALSS-SVDD)</option>
+              </optgroup>
             </select>
-            <p id="modelHint" class="text-muted small mb-4"></p>
+            <p id="modelHint" class="text-muted small mb-3"></p>
+
+            <!-- Algorithm type badge -->
+            <div id="algoTypeBadge" class="algo-badge mb-3 d-none"></div>
 
             <div class="mt-auto d-grid">
               <button id="runBtn" class="btn run-btn">Run Prediction</button>

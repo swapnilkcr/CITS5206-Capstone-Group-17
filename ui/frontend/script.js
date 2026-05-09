@@ -66,16 +66,37 @@ function setMode(mode) {
   uploadArea.classList.remove("has-file");
 }
 
-// ── Model hints ───────────────────────────────────────────────────────────────
+// ── Model hints & type badges ──────────────────────────────────────────────────
 const MODEL_HINTS = {
-  xgboost:          "Gradient-boosted trees — fast, handles class imbalance well. Best overall on SKAB.",
-  random_forest:    "Ensemble of decision trees — robust and stable. Slightly lower recall but very consistent.",
+  xgboost:          "Gradient-boosted trees — fast, handles class imbalance well. Best overall on SKAB. Requires labeled data.",
+  random_forest:    "Ensemble of decision trees — robust and stable. Slightly lower recall but very consistent. Requires labeled data.",
   isolation_forest: "Unsupervised anomaly detection — no labels needed. Trained only on normal pump behaviour; flags readings that deviate from the baseline.",
   lstm_autoencoder: "LSTM Autoencoder (Thant) — unsupervised deep learning. Learns normal sensor patterns then flags windows with high reconstruction error. No labels needed.",
-  transformer:      "Transformer Autoencoder (Zeyang) — unsupervised deep learning. Uses self-attention over 60-timestep windows to learn normal behaviour; high reconstruction error flags anomalies. No labels needed.",
+  transformer:      "Transformer Autoencoder (Zeyang) — unsupervised deep learning. Uses self-attention over 30-timestep windows to learn normal behaviour; high reconstruction error flags anomalies. No labels needed.",
   adapted_lstm:     "Adapted LSTM / ALSS-SVDD (Julie) — semi-supervised deep SVDD. LSTM encoder learns a centre for normal behaviour; anomalies are windows far from that centre. Trained on labelled valve1 data.",
 };
-function updateHint() { modelHint.textContent = MODEL_HINTS[modelSelect.value] || ""; }
+
+const MODEL_TYPE = {
+  xgboost:          { label: "Supervised",      cls: "badge-supervised",      icon: "🎯" },
+  random_forest:    { label: "Supervised",      cls: "badge-supervised",      icon: "🎯" },
+  isolation_forest: { label: "Unsupervised",    cls: "badge-unsupervised",    icon: "🔍" },
+  lstm_autoencoder: { label: "Unsupervised",    cls: "badge-unsupervised",    icon: "🔍" },
+  transformer:      { label: "Unsupervised",    cls: "badge-unsupervised",    icon: "🔍" },
+  adapted_lstm:     { label: "Semi-supervised", cls: "badge-semisupervised",  icon: "⚡" },
+};
+
+const algoTypeBadge = document.getElementById("algoTypeBadge");
+
+function updateHint() {
+  const val  = modelSelect.value;
+  modelHint.textContent = MODEL_HINTS[val] || "";
+  const t = MODEL_TYPE[val];
+  if (t) {
+    algoTypeBadge.className = `algo-badge mb-3 ${t.cls}`;
+    algoTypeBadge.innerHTML = `${t.icon} <strong>${t.label}</strong>`;
+    algoTypeBadge.classList.remove("d-none");
+  }
+}
 modelSelect.addEventListener("change", updateHint);
 updateHint();
 
@@ -90,10 +111,78 @@ uploadArea.addEventListener("drop", (e) => {
   if (e.dataTransfer.files[0]) { fileInput.files = e.dataTransfer.files; setFile(e.dataTransfer.files[0]); }
 });
 
+let previewOpen = false;
+
+function togglePreview() {
+  previewOpen = !previewOpen;
+  document.getElementById("previewBody").classList.toggle("d-none", !previewOpen);
+  document.getElementById("previewChevron").textContent = previewOpen ? "▲" : "▼";
+}
+
 function setFile(file) {
   fileChip.textContent = file.name;
   fileChip.classList.remove("d-none");
   uploadArea.classList.add("has-file");
+  if (currentMode === "single") loadPreview(file);
+}
+
+async function loadPreview(file) {
+  const previewSection = document.getElementById("previewSection");
+  const previewMeta    = document.getElementById("previewMeta");
+  const previewInfo    = document.getElementById("previewInfo");
+  const previewRecommend = document.getElementById("previewRecommend");
+  const previewThead   = document.getElementById("previewThead");
+  const previewTbody   = document.getElementById("previewTbody");
+
+  previewSection.classList.remove("d-none");
+  previewMeta.textContent = "Loading…";
+
+  const fd = new FormData();
+  fd.append("file", file);
+  try {
+    const res  = await fetch("/api/preview", { method: "POST", body: fd });
+    const data = await res.json();
+    if (!res.ok) { previewMeta.textContent = data.error || "Preview failed"; return; }
+
+    previewMeta.textContent = `${data.rows.toLocaleString()} rows × ${data.cols} cols`;
+
+    // Info row
+    const labelNote = data.has_labels
+      ? `<span class="badge bg-success">✓ anomaly column detected</span> — metrics will be shown after prediction.`
+      : `<span class="badge bg-warning text-dark">⚠ No anomaly column</span> — this is unlabeled data. Use an <strong>unsupervised or semi-supervised</strong> model.`;
+    const rateNote = data.has_labels ? ` &nbsp;|&nbsp; Anomaly rate: <strong>${data.anomaly_rate}%</strong>` : "";
+    previewInfo.innerHTML = `${labelNote}${rateNote}`;
+
+    // Auto-recommendation if no labels
+    if (!data.has_labels) {
+      previewRecommend.className = "recommend-box";
+      previewRecommend.innerHTML = `
+        <strong>💡 Recommendation:</strong> Since this file has no labels, supervised models (XGBoost, Random Forest)
+        cannot be meaningfully evaluated. We recommend:
+        <strong>Isolation Forest</strong>, <strong>LSTM Autoencoder</strong>,
+        <strong>Transformer AE</strong>, or <strong>Adapted LSTM</strong>.`;
+      previewRecommend.classList.remove("d-none");
+    } else {
+      previewRecommend.classList.add("d-none");
+    }
+
+    // Table header
+    const cols = data.columns;
+    previewThead.innerHTML = `<tr>${cols.map(c => {
+      const isFeature = data.feature_cols.includes(c);
+      const isLabel   = c === "anomaly" || c === "changepoint";
+      const cls = isLabel ? "col-label" : isFeature ? "col-feature" : "col-meta";
+      return `<th class="${cls}">${c}</th>`;
+    }).join("")}</tr>`;
+
+    // Table body
+    previewTbody.innerHTML = data.preview.map(row =>
+      `<tr>${cols.map(c => `<td>${row[c] ?? ""}</td>`).join("")}</tr>`
+    ).join("");
+
+  } catch (e) {
+    previewMeta.textContent = "Preview unavailable";
+  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
