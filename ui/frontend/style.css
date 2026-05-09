@@ -428,7 +428,8 @@ body {
   padding: 12px;
   background: #fafcff;
 }
-.preview-table-wrap { max-height: 220px; overflow: auto; }
+.preview-table-wrap { max-height: 400px; overflow: auto; }
+.preview-expand-btn { font-size: .75rem; padding: 2px 9px; border-radius: 7px; }
 .preview-table { font-size: .76rem; }
 .preview-table th { white-space: nowrap; position: sticky; top: 0; background: #f8fafc; z-index: 1; }
 .preview-info { font-size: .82rem; }

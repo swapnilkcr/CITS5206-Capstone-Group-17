@@ -112,11 +112,38 @@ uploadArea.addEventListener("drop", (e) => {
 });
 
 let previewOpen = false;
+let _lastPreviewData = null;
 
 function togglePreview() {
   previewOpen = !previewOpen;
   document.getElementById("previewBody").classList.toggle("d-none", !previewOpen);
   document.getElementById("previewChevron").textContent = previewOpen ? "▲" : "▼";
+}
+
+function openPreviewModal() {
+  if (!_lastPreviewData) return;
+  const data = _lastPreviewData;
+  document.getElementById("modalMeta").textContent =
+    `${data.rows.toLocaleString()} rows × ${data.cols} cols`;
+
+  const labelNote = data.has_labels
+    ? `<span class="badge bg-success">✓ anomaly column present</span> &nbsp;|&nbsp; Anomaly rate: <strong>${data.anomaly_rate}%</strong>`
+    : `<span class="badge bg-warning text-dark">⚠ No anomaly column</span> — unlabeled data`;
+  document.getElementById("modalInfo").innerHTML = labelNote;
+
+  const cols = data.columns;
+  document.getElementById("modalThead").innerHTML =
+    `<tr>${cols.map(c => {
+      const cls = c === "anomaly" || c === "changepoint" ? "col-label"
+                : data.feature_cols.includes(c) ? "col-feature" : "col-meta";
+      return `<th class="${cls}">${c}</th>`;
+    }).join("")}</tr>`;
+
+  document.getElementById("modalTbody").innerHTML = data.preview.map(row =>
+    `<tr>${cols.map(c => `<td>${row[c] ?? ""}</td>`).join("")}</tr>`
+  ).join("");
+
+  new bootstrap.Modal(document.getElementById("previewModal")).show();
 }
 
 function setFile(file) {
@@ -144,6 +171,7 @@ async function loadPreview(file) {
     const data = await res.json();
     if (!res.ok) { previewMeta.textContent = data.error || "Preview failed"; return; }
 
+    _lastPreviewData = data;
     previewMeta.textContent = `${data.rows.toLocaleString()} rows × ${data.cols} cols`;
 
     // Info row

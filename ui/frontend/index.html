@@ -92,7 +92,10 @@
               <div class="preview-header" onclick="togglePreview()">
                 <span id="previewToggleLabel">📋 Dataset Preview</span>
                 <span id="previewMeta" class="preview-meta"></span>
-                <span id="previewChevron" class="ms-auto">▼</span>
+                <button class="btn btn-sm btn-outline-secondary ms-auto me-2 preview-expand-btn"
+                        onclick="event.stopPropagation(); openPreviewModal()"
+                        title="Fullscreen view">⛶ Expand</button>
+                <span id="previewChevron">▼</span>
               </div>
               <div id="previewBody" class="preview-body d-none">
                 <div id="previewInfo" class="preview-info mb-2"></div>
@@ -110,18 +113,12 @@
             <!-- Model -->
             <label class="form-label fw-semibold mb-1">Algorithm</label>
             <select id="modelSelect" class="form-select custom-select mb-1">
-              <optgroup label="🎯 Supervised (requires labeled data)">
-                <option value="xgboost">XGBoost</option>
-                <option value="random_forest">Random Forest</option>
-              </optgroup>
-              <optgroup label="🔍 Unsupervised (no labels needed)">
-                <option value="isolation_forest">Isolation Forest</option>
-                <option value="lstm_autoencoder">LSTM Autoencoder</option>
-                <option value="transformer">Transformer Autoencoder</option>
-              </optgroup>
-              <optgroup label="⚡ Semi-supervised (labels at train time only)">
-                <option value="adapted_lstm">Adapted LSTM (ALSS-SVDD)</option>
-              </optgroup>
+              <option value="xgboost">XGBoost</option>
+              <option value="random_forest">Random Forest</option>
+              <option value="isolation_forest">Isolation Forest</option>
+              <option value="lstm_autoencoder">LSTM Autoencoder</option>
+              <option value="transformer">Transformer Autoencoder</option>
+              <option value="adapted_lstm">Adapted LSTM (ALSS-SVDD)</option>
             </select>
             <p id="modelHint" class="text-muted small mb-3"></p>
 
@@ -254,6 +251,28 @@
 
     </div>
   </main>
+
+  <!-- Preview fullscreen modal -->
+  <div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-fullscreen">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold">📋 Dataset Preview</h5>
+          <div id="modalMeta" class="text-muted small ms-3 mt-1"></div>
+          <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-0">
+          <div id="modalInfo" class="px-4 pt-3 pb-2" style="font-size:.85rem;"></div>
+          <div class="table-responsive" style="height:calc(100vh - 140px); overflow:auto;">
+            <table class="table table-sm table-hover preview-table mb-0" id="modalTable">
+              <thead id="modalThead"></thead>
+              <tbody id="modalTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="script.js"></script>
