@@ -113,6 +113,121 @@ uploadArea.addEventListener("drop", (e) => {
 
 let previewOpen = false;
 let _lastPreviewData = null;
+let _currentFile = null;
+let _columnMap = {};
+let _migrationAck = sessionStorage.getItem("migrationAck") === "1";
+let _migrationModal = null;
+
+function getMigrationModal() {
+  if (!_migrationModal) {
+    const el = document.getElementById("migrationModal");
+    if (el) _migrationModal = new bootstrap.Modal(el);
+  }
+  return _migrationModal;
+}
+
+function showMigrationModal() {
+  return new Promise((resolve) => {
+    const modal = getMigrationModal();
+    if (!modal) { resolve(true); return; }
+    const btn = document.getElementById("migrationContinueBtn");
+    const onContinue = () => {
+      _migrationAck = true;
+      sessionStorage.setItem("migrationAck", "1");
+      btn?.removeEventListener("click", onContinue);
+      resolve(true);
+    };
+    btn?.addEventListener("click", onContinue, { once: true });
+    modal.show();
+  });
+}
+
+function buildColumnMapPayload() {
+  const keys = Object.keys(_columnMap).filter(k => _columnMap[k]);
+  if (!keys.length) return null;
+  return JSON.stringify(_columnMap);
+}
+
+function isColumnMapComplete(skabCols) {
+  if (!skabCols?.length) return false;
+  const vals = skabCols.map(c => _columnMap[c]).filter(Boolean);
+  return vals.length === skabCols.length && new Set(vals).size === vals.length;
+}
+
+function renderColumnMapGrid(data) {
+  const grid = document.getElementById("columnMapGrid");
+  const status = document.getElementById("columnMapStatus");
+  const skabCols = data.skab_feature_cols || [];
+  const sources = data.numeric_columns || data.columns || [];
+  const hints = data.suggested_column_map || {};
+
+  if (!skabCols.length) {
+    grid.innerHTML = "";
+    return;
+  }
+
+  if (!Object.keys(_columnMap).length && hints) {
+    skabCols.forEach(c => { if (hints[c]) _columnMap[c] = hints[c]; });
+  }
+
+  grid.innerHTML = skabCols.map(skab => {
+    const selected = _columnMap[skab] || "";
+    const opts = ['<option value="">— pick column —</option>']
+      .concat(sources.map(s => {
+        const sel = s === selected ? " selected" : "";
+        return `<option value="${s}"${sel}>${s}</option>`;
+      }));
+    return `<label class="column-map-row">
+      <span class="column-map-skab" title="${skab}">${skab}</span>
+      <select class="form-select form-select-sm column-map-select" data-skab="${skab}">${opts.join("")}</select>
+    </label>`;
+  }).join("");
+
+  grid.querySelectorAll(".column-map-select").forEach(sel => {
+    sel.addEventListener("change", () => {
+      _columnMap[sel.dataset.skab] = sel.value;
+      updateColumnMapStatus(data);
+      if (_currentFile) loadPreview(_currentFile, true);
+    });
+  });
+
+  updateColumnMapStatus(data);
+}
+
+function updateColumnMapStatus(data) {
+  const status = document.getElementById("columnMapStatus");
+  const skabCols = data.skab_feature_cols || [];
+  const complete = isColumnMapComplete(skabCols);
+  if (complete) {
+    status.innerHTML = '<span class="text-success">✓ All 8 columns mapped — you can run prediction.</span>';
+    if (data.is_unseen_dataset && !_migrationAck) showMigrationModal();
+  } else {
+    const n = skabCols.filter(c => _columnMap[c]).length;
+    status.innerHTML = `<span class="text-warning">Mapped ${n} / 8 — select a unique column for each sensor.</span>`;
+  }
+}
+
+function applyUnseenPreviewUI(data) {
+  const unseenBanner = document.getElementById("unseenBanner");
+  const columnSection = document.getElementById("columnMapSection");
+  const showUnseen = data.is_unseen_dataset || data.needs_column_pick;
+  const showMapper = data.needs_column_pick;
+
+  unseenBanner.classList.toggle("d-none", !showUnseen);
+  columnSection.classList.toggle("d-none", !showMapper);
+
+  if (showMapper) {
+    renderColumnMapGrid(data);
+    previewOpen = true;
+    document.getElementById("previewBody").classList.remove("d-none");
+    document.getElementById("previewChevron").textContent = "▲";
+  }
+
+  if (data.is_unseen_dataset && !data.has_labels) {
+    modelSelect.value = "isolation_forest";
+    updateHint();
+  }
+}
 
 function togglePreview() {
   previewOpen = !previewOpen;
@@ -147,13 +262,16 @@ function openPreviewModal() {
 }
 
 function setFile(file) {
+  _currentFile = file;
+  _columnMap = {};
   fileChip.textContent = file.name;
   fileChip.classList.remove("d-none");
   uploadArea.classList.add("has-file");
   if (currentMode === "single") loadPreview(file);
 }
 
-async function loadPreview(file) {
+async function loadPreview(file, keepMap = false) {
+  if (!keepMap) _columnMap = {};
   const previewSection = document.getElementById("previewSection");
   const previewMeta    = document.getElementById("previewMeta");
   const previewInfo    = document.getElementById("previewInfo");
@@ -166,6 +284,8 @@ async function loadPreview(file) {
 
   const fd = new FormData();
   fd.append("file", file);
+  const mapJson = buildColumnMapPayload();
+  if (mapJson) fd.append("column_map", mapJson);
   try {
     const res  = await fetch("/api/preview", { method: "POST", body: fd });
     const data = await res.json();
@@ -173,6 +293,8 @@ async function loadPreview(file) {
 
     _lastPreviewData = data;
     previewMeta.textContent = `${data.rows.toLocaleString()} rows × ${data.cols} cols`;
+
+    applyUnseenPreviewUI(data);
 
     // Info row
     const labelNote = data.has_labels
@@ -509,6 +631,21 @@ runBtn.addEventListener("click", async () => {
     return;
   }
 
+  if (currentMode === "single" && _lastPreviewData?.needs_column_pick) {
+    const skab = _lastPreviewData.skab_feature_cols || [];
+    if (!isColumnMapComplete(skab)) {
+      showStatus("🔔 Unseen dataset — please map all 8 SKAB sensor columns in the preview panel first.", "error");
+      previewOpen = true;
+      document.getElementById("previewBody").classList.remove("d-none");
+      document.getElementById("previewChevron").textContent = "▲";
+      return;
+    }
+  }
+
+  if (currentMode === "single" && _lastPreviewData?.is_unseen_dataset && !_migrationAck) {
+    await showMigrationModal();
+  }
+
   hide(emptyState);
   hide(singleResults);
   hide(zipResults);
@@ -519,6 +656,8 @@ runBtn.addEventListener("click", async () => {
   const formData = new FormData();
   formData.append("file",  fileInput.files[0]);
   formData.append("model", modelSelect.value);
+  const mapJson = buildColumnMapPayload();
+  if (mapJson) formData.append("column_map", mapJson);
 
   const endpoint = currentMode === "zip" ? "/api/evaluate" : "/api/predict";
 
@@ -528,7 +667,10 @@ runBtn.addEventListener("click", async () => {
     data = await res.json();
     if (!res.ok) throw new Error(data.error || "Server error");
   } catch (err) {
-    showStatus(`Error: ${err.message}`, "error");
+    const msg = data?.needs_column_pick
+      ? "Warning: Unseen dataset — map all 8 columns in preview first."
+      : err.message;
+    showStatus(`Error: ${msg}`, "error"); 
     runBtn.disabled    = false;
     runBtn.textContent = "Run Prediction";
     show(emptyState);
@@ -543,6 +685,13 @@ runBtn.addEventListener("click", async () => {
   if (currentMode === "single") {
     // Single file results
     renderRiskBanner(data.anomaly_rate);
+    singleResults.querySelector(".migration-result-note")?.remove();
+    if (data.is_unseen_dataset && data.migration_risk) {
+      const warn = document.createElement("div");
+      warn.className = "migration-result-note mb-3";
+      warn.innerHTML = `<strong>⚠️ Migration risk:</strong> ${data.migration_risk} <a href="docs.html#retrain-guide" target="_blank">Retrain guide →</a>`;
+      singleResults.insertBefore(warn, singleResults.firstChild);
+    }
     renderSummaryCards(data, summaryCards);
 
     if (data.has_labels && data.metrics && Object.keys(data.metrics).length) {

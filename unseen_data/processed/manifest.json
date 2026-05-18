@@ -1,0 +1,41 @@
+{
+  "source": "https://zenodo.org/records/13808085",
+  "pump": "NeWater Pump 1",
+  "raw_dir": "/Users/einstern/VSCode/CITS5206-Capstone-Group-17/unseen_data/zenodo_newater_pump1_raw",
+  "output": "/Users/einstern/VSCode/CITS5206-Capstone-Group-17/unseen_data/processed/newater_pump1_merged.csv",
+  "rows": 527040,
+  "columns": [
+    "datetime",
+    "current_power_i1",
+    "current_power_i2",
+    "current_power_i3",
+    "power_power_p1",
+    "power_power_p2",
+    "power_power_p3",
+    "vib_temperature",
+    "vib_x_disp",
+    "vib_y_disp",
+    "vib_z_disp",
+    "pressure_incoming_p1",
+    "pressure_outgoing",
+    "tank_level"
+  ],
+  "resample": "1min",
+  "required_files": [
+    "Current Sensor - NeWater Pump 1.csv",
+    "Power Sensor - NeWater Pump 1.csv",
+    "Energy Sensor - NeWater Pump 1.csv",
+    "Vibration Sensor - NeWater Pump 1 Temperature.csv",
+    "Vibration Sensor - NeWater Pump 1 X-Axis Speed.csv",
+    "Vibration Sensor - NeWater Pump 1 Y-Axis Speed.csv",
+    "Vibration Sensor - NeWater Pump 1 Z-Axis Speed.csv",
+    "Vibration Sensor - NeWater Pump 1 X-Axis Displacement.csv",
+    "Vibration Sensor - NeWater Pump 1 Y-Axis Displacement.csv",
+    "Vibration Sensor - NeWater Pump 1 Z-Axis Displacement.csv",
+    "Pressure Sensor - NeWater Incoming Pump 1.csv"
+  ],
+  "optional_files": [
+    "Pressure Sensor - NeWater Outgoing Pump.csv",
+    "Water Level Sensor - NeWater Tank.csv"
+  ]
+}

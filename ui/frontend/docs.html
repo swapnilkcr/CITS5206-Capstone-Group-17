@@ -608,6 +608,63 @@
     </div>
   </div>
 
+
+  <div class="section-title" id="retrain-guide">🔔 Unseen client data &amp; retrain / fine-tune</div>
+  <div class="files-card mb-4">
+    <h6 class="fw-bold mb-2">Migration risk (honest disclaimer)</h6>
+    <p style="font-size:.9rem;">
+      Checkpoints in this app were trained on the <strong>SKAB valve</strong> benchmark (fixed 8 sensor channels).
+      If you upload a <strong>client CSV</strong> that is not in our SKAB library, the UI treats it as an
+      <strong>unseen dataset</strong>. You can map your columns to the 8 SKAB names and run models for
+      <em>screening</em>, but scores are <strong>not validated accuracy</strong> — sensor types, scaling, and
+      pump dynamics may differ (domain shift).
+    </p>
+    <p style="font-size:.9rem;" class="mb-0">
+      For production use on your pumps, plan to <strong>retrain or fine-tune</strong> on your own normal baseline
+      (and labelled faults when available).
+    </p>
+  </div>
+
+  <div class="files-card">
+    <h6 class="fw-bold mb-3">Recommended retrain workflow</h6>
+    <div class="workflow-step">
+      <div class="wf-num">1</div>
+      <div class="wf-content">
+        <strong>Collect client baseline CSVs</strong>
+        <p>Export normal-operation sensor logs (no faults). Align timestamps and remove obvious bad rows.</p>
+      </div>
+    </div>
+    <div class="workflow-step">
+      <div class="wf-num">2</div>
+      <div class="wf-content">
+        <strong>Map or rename to 8 SKAB channels</strong>
+        <p>In the app preview, map your columns to the 8 SKAB sensor names, or rename columns in your ETL pipeline.</p>
+      </div>
+    </div>
+    <div class="workflow-step">
+      <div class="wf-num">3</div>
+      <div class="wf-content">
+        <strong>Train unsupervised models on client normal data</strong>
+        <p>Re-run notebooks under <code>pre_trained_model/ipynb_scripts/</code> for Isolation Forest, LSTM AE, and Transformer AE.</p>
+      </div>
+    </div>
+    <div class="workflow-step">
+      <div class="wf-num">4</div>
+      <div class="wf-content">
+        <strong>Export checkpoints</strong>
+        <p>Place artifacts under <code>pre_trained_model/artifacts/</code> and register in <code>registry.yaml</code>.</p>
+      </div>
+    </div>
+    <div class="workflow-step">
+      <div class="wf-num">5</div>
+      <div class="wf-content">
+        <strong>Fine-tune Adapted LSTM when labels exist</strong>
+        <p>After confirmed faults, add <code>anomaly</code> labels and re-train ALSS-SVDD on your valve data.</p>
+      </div>
+    </div>
+    <p class="text-muted small mt-3 mb-0">UI: upload unseen CSV → map 8 columns → migration-risk popup → run unsupervised model for screening.</p>
+  </div>
+
   <div class="mt-4 text-center">
     <a href="index.html" class="btn btn-primary px-4 py-2">← Back to App</a>
   </div>

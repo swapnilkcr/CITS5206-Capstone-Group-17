@@ -447,6 +447,55 @@ th.col-meta    { background: #f1f5f9 !important; color: var(--muted); }
   color: #92400e;
 }
 
+
+/* ── Unseen dataset & column mapping ───────────────────── */
+.unseen-banner {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: linear-gradient(135deg, #fff7ed, #ffedd5);
+  border: 1px solid #fdba74;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: .84rem;
+  color: #9a3412;
+}
+.unseen-banner-icon { font-size: 1.25rem; line-height: 1; flex-shrink: 0; }
+.column-map-section {
+  background: #f8fafc;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  padding: 12px;
+}
+.column-map-grid {
+  display: grid;
+  gap: 8px;
+}
+.column-map-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 8px;
+  align-items: center;
+  margin: 0;
+  font-size: .78rem;
+}
+.column-map-skab {
+  font-weight: 600;
+  color: #1e40af;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.column-map-status { min-height: 1.2em; }
+.migration-result-note {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: .88rem;
+  color: #92400e;
+}
+
 /* ── Responsive ────────────────────────────────────────── */
 @media (max-width: 991px) {
   .hero-title { font-size: 1.4rem; }

@@ -209,6 +209,10 @@ __marimo__/
 # Local SKAB dataset checkout (git clone waico/SKAB)
 external/SKAB/
 
+# Zenodo unseen pump CSVs (large; keep README + scripts in git)
+unseen_data/zenodo_newater_pump1_raw/*.csv
+unseen_data/processed/*.csv
+
 # Pre-trained model artifacts (often large; keep registry tracked instead)
 pre_trained_model/artifacts/
 *.pt
@@ -219,3 +223,4 @@ pre_trained_model/artifacts/
 *.onnx
 *.joblib
 *.pkl
+.DS_Store

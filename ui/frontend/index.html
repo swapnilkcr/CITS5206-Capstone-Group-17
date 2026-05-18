@@ -98,6 +98,19 @@
                 <span id="previewChevron">▼</span>
               </div>
               <div id="previewBody" class="preview-body d-none">
+                <div id="unseenBanner" class="unseen-banner d-none mb-2">
+                  <span class="unseen-banner-icon">🔔</span>
+                  <div>
+                    <strong>Unseen dataset!</strong> Please map your CSV columns to the 8 SKAB sensor channels below.
+                    <span class="d-block small mt-1 opacity-90">Scores are screening-only — migration risk applies (see popup when you run).</span>
+                  </div>
+                </div>
+                <div id="columnMapSection" class="column-map-section d-none mb-3">
+                  <div class="column-map-title fw-semibold mb-1">Map 8 feature columns</div>
+                  <p class="text-muted small mb-2">Pick one source column per SKAB sensor (each column can only be used once).</p>
+                  <div id="columnMapGrid" class="column-map-grid"></div>
+                  <div id="columnMapStatus" class="column-map-status small mt-2"></div>
+                </div>
                 <div id="previewInfo" class="preview-info mb-2"></div>
                 <div id="previewRecommend" class="d-none mb-2"></div>
                 <div class="table-responsive preview-table-wrap">
@@ -269,6 +282,27 @@
               <tbody id="modalTbody"></tbody>
             </table>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Migration risk modal -->
+  <div class="modal fade" id="migrationModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title fw-bold">⚠️ Migration risk</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>These models were trained on <strong>SKAB valve</strong> sensor data. Your file is an <strong>unseen client dataset</strong> — anomaly scores are <em>indicative screening only</em> (domain shift).</p>
+          <p class="mb-0">For reliable deployment on your pumps, collect normal baseline data and <strong>retrain or fine-tune</strong> the unsupervised models (Isolation Forest, LSTM AE, Transformer AE, Adapted LSTM).</p>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <a href="docs.html#retrain-guide" class="btn btn-outline-primary" target="_blank">📖 Retrain guide</a>
+          <button type="button" class="btn btn-primary" id="migrationContinueBtn" data-bs-dismiss="modal">Continue screening</button>
         </div>
       </div>
     </div>
