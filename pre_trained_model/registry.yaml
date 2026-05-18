@@ -1,18 +1,88 @@
-# Model registry for team-shared experiments.
-#
-# - Add one item per trained model.
-# - Keep the format consistent so scripts can parse it.
-#
-# Fields:
-# - model_id: stable unique id (string)
-# - owner: who trained it (string)
-# - created_at: ISO-8601 datetime (string)
-# - task: "pipe_anomaly_detection" (string)
-# - dataset: describes the dataset and split used (object)
-# - framework: "tensorflow", "pytorch", "sklearn" (string)
-# - artifact_uri: local path or external URL to artifacts (string)
-# - metrics: free-form key/value numbers (object)
-# - notes: optional (string)
+# Team model registry — UI loads artifacts via ui/model_pipeline.py (never trains on startup).
+# artifact_uri paths are relative to the repository root unless absolute.
 
-models: []
+models:
+  - model_id: feature_scaler_skab_v1
+    owner: team
+    created_at: "2026-05-18T00:00:00Z"
+    task: pipe_anomaly_detection
+    framework: sklearn
+    dataset:
+      name: SKAB
+      split: anomaly-free baseline
+    artifact_uri: pre_trained_model/artifacts/sklearn/scaler.joblib
+    metrics: {}
+    notes: StandardScaler on 24 rolling features for XGBoost / RF / Isolation Forest.
 
+  - model_id: xgboost_full_skab_v1
+    owner: shreyan
+    created_at: "2026-05-18T00:00:00Z"
+    task: pipe_anomaly_detection
+    framework: xgboost
+    dataset:
+      name: SKAB
+      split: valve1+valve2+other labelled
+    artifact_uri: pre_trained_model/artifacts/sklearn/xgboost_full.joblib
+    metrics: {}
+    notes: Full-data supervised fallback + ZIP Group K-Fold. UI key xgboost.
+
+  - model_id: random_forest_full_skab_v1
+    owner: shreyan
+    created_at: "2026-05-18T00:00:00Z"
+    task: pipe_anomaly_detection
+    framework: sklearn
+    dataset:
+      name: SKAB
+      split: valve1+valve2+other labelled
+    artifact_uri: pre_trained_model/artifacts/sklearn/random_forest_full.joblib
+    metrics: {}
+    notes: UI key random_forest.
+
+  - model_id: isolation_forest_skab_v1
+    owner: shreyan
+    created_at: "2026-05-18T00:00:00Z"
+    task: pipe_anomaly_detection
+    framework: sklearn
+    dataset:
+      name: SKAB
+      split: anomaly-free baseline
+    artifact_uri: pre_trained_model/artifacts/sklearn/isolation_forest.joblib
+    metrics: {}
+    notes: joblib bundle with model + threshold. UI key isolation_forest.
+
+  - model_id: lstm_ae_skab_v1
+    owner: thant
+    created_at: "2026-05-18T00:00:00Z"
+    task: pipe_anomaly_detection
+    framework: pytorch
+    dataset:
+      name: SKAB
+      split: anomaly-free baseline
+    artifact_uri: pre_trained_model/artifacts/lstm/lstm_autoencoder.joblib
+    metrics: {}
+    notes: LSTM autoencoder reconstruction error. UI key lstm_autoencoder.
+
+  - model_id: transformer_ae_skab_v1
+    owner: zeyang
+    created_at: "2026-05-18T00:00:00Z"
+    task: pipe_anomaly_detection
+    framework: pytorch
+    dataset:
+      name: SKAB
+      split: anomaly-free baseline
+    artifact_uri: pre_trained_model/artifacts/transformer/transformer.joblib
+    metrics: {}
+    notes: Transformer AE bundle (state_dict, scaler, threshold). UI key transformer.
+
+  - model_id: adapted_lstm_valve1_v1
+    owner: julie
+    created_at: "2026-04-22T08:27:06Z"
+    task: pipe_anomaly_detection
+    framework: pytorch
+    dataset:
+      name: SKAB
+      split: valve1 train/val
+    artifact_uri: pre_trained_model/artifacts/adapted_lstm/adapted_lstm.joblib
+    metrics:
+      best_val_f1: 0.905
+    notes: ALSS-SVDD LSTM. UI key adapted_lstm. Native .pt fallback Adapted-LSTM/outputs/*/best_model.pt
